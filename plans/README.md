@@ -30,7 +30,7 @@ and update your row when done.
 |------|-------|----------|--------|------------|--------|
 | 009  | Water pause (mirror eye pause) | P1 | M | — | DONE |
 | 010  | Notification permission recovery in Settings | P1 | S–M | — | DONE |
-| 011  | One-tap log glass from Home | P2 | S | 009 preferred (Water card) | TODO |
+| 011  | One-tap log glass from Home | P2 | S | 009 preferred (Water card) | DONE |
 | 012  | Native active-hours time pickers | P2 | M | — | TODO |
 | 013  | Notification action buttons (spike + optional MVP) | P3 | L | 010 recommended | TODO |
 

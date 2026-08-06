@@ -11,14 +11,23 @@ import { RouteNames, type RootStackParamList } from '../navigation/routes';
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
 /**
- * Home tab: calm daily dashboard with today's eye/water counts, per-feature
- * pause controls, and quick entry into Eye Rest and Water Log.
+ * Home tab: calm daily dashboard with today's eye/water counts, one-tap
+ * water logging, per-feature pause controls, and entry into Eye Rest and
+ * the full Water Log.
  */
 export function HomeScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation<Navigation>();
   const { settings, updateSettings } = useSettings();
-  const { eyeBreaks, waterGlasses, goal, hydrated, loading } = useDailyLog();
+  const {
+    eyeBreaks,
+    waterGlasses,
+    goal,
+    hydrated,
+    loading,
+    logGlass,
+    undoGlass,
+  } = useDailyLog();
 
   if (loading) return <LoadingScreen />;
 
@@ -120,11 +129,30 @@ export function HomeScreen() {
           </Pressable>
 
           <Button
-            label="Log Water"
+            label="Log a glass"
+            onPress={() => {
+              void logGlass();
+            }}
+            accessibilityLabel="Log a glass"
+            accessibilityHint="Adds one glass to today's count"
+          />
+          {waterGlasses > 0 && (
+            <Button
+              label="Undo"
+              variant="secondary"
+              onPress={() => {
+                void undoGlass();
+              }}
+              accessibilityLabel="Undo last glass"
+              accessibilityHint="Removes the last logged glass"
+            />
+          )}
+          <Button
+            label="Open water log"
             variant="secondary"
             onPress={() => navigation.navigate(RouteNames.WaterLog)}
-            accessibilityLabel="Log water"
-            accessibilityHint="Opens the water log"
+            accessibilityLabel="Open water log"
+            accessibilityHint="Opens the full water log"
           />
         </Card>
       </View>

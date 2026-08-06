@@ -53,8 +53,48 @@ describe('HomeScreen', () => {
       'Opens a 20-second guided eye break'
     );
 
-    const waterButton = getByRole('button', { name: 'Log water' });
-    expect(waterButton.props.accessibilityHint).toBe('Opens the water log');
+    const logGlassButton = getByRole('button', { name: 'Log a glass' });
+    expect(logGlassButton.props.accessibilityHint).toBe(
+      "Adds one glass to today's count"
+    );
+
+    const openWaterLogButton = getByRole('button', {
+      name: 'Open water log',
+    });
+    expect(openWaterLogButton.props.accessibilityHint).toBe(
+      'Opens the full water log'
+    );
+  });
+
+  it('logs a glass from Home and persists', async () => {
+    const repo = new InMemoryRepository({ waterGoalGlasses: 8 });
+    const { getByRole } = await renderHome(repo);
+
+    const logButton = await waitFor(() =>
+      getByRole('button', { name: 'Log a glass' })
+    );
+    fireEvent.press(logButton);
+
+    await waitFor(async () => {
+      expect((await repo.getLog(todayKey())).waterGlasses).toBe(1);
+    });
+  });
+
+  it('undoes a glass from Home', async () => {
+    const repo = new InMemoryRepository({ waterGoalGlasses: 8 });
+    const { getByRole, findByRole } = await renderHome(repo);
+
+    fireEvent.press(await findByRole('button', { name: 'Log a glass' }));
+
+    const undoButton = await findByRole('button', { name: 'Undo last glass' });
+    expect(undoButton.props.accessibilityHint).toBe(
+      'Removes the last logged glass'
+    );
+    fireEvent.press(undoButton);
+
+    await waitFor(async () => {
+      expect((await repo.getLog(todayKey())).waterGlasses).toBe(0);
+    });
   });
 
   it('toggles eye pause via the switch and persists', async () => {
