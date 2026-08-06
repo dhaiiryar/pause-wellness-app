@@ -3,6 +3,7 @@ import type * as Notifications from 'expo-notifications';
 
 import { rescheduleWaterReminders } from '../../src/scheduling/waterScheduler';
 import { InMemoryRepository } from '../../src/data';
+import { WATER_CATEGORY_IDENTIFIER } from '../../src/notifications/categoryIds';
 
 type NotificationsApi = typeof Notifications;
 
@@ -61,7 +62,9 @@ describe('rescheduleWaterReminders', () => {
       .calls[0][0];
     expect(firstCall.trigger.channelId).toBe('water');
     expect(firstCall.content.data).toEqual({ feature: 'water' });
-    expect(firstCall.content.categoryIdentifier).toBe('water_actions');
+    expect(firstCall.content.categoryIdentifier).toBe(
+      WATER_CATEGORY_IDENTIFIER,
+    );
   });
 
   it('uses the muted channel when sounds are disabled', async () => {
