@@ -7,7 +7,7 @@ import {
   type TextStyle,
 } from 'react-native';
 
-import { Screen, SettingsRow, Text } from '../components';
+import { LoadingScreen, Screen, SettingsRow, Text } from '../components';
 import { useSettings } from '../state/SettingsProvider';
 import { useTheme } from '../theme';
 import { type ThemeMode } from '../types/settings';
@@ -45,7 +45,7 @@ export function SettingsScreen() {
     }
   }, [loading, settings]);
 
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
 
   const input: TextStyle = {
     color: theme.colors.text,

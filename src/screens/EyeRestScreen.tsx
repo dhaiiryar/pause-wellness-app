@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-import { Screen, TicksRing, Text } from '../components';
+import { LoadingScreen, Screen, TicksRing, Text } from '../components';
 import { useDailyLog } from '../state/DailyLogProvider';
 import { useTheme } from '../theme';
 
@@ -99,7 +99,7 @@ export function EyeRestScreen() {
 
   // ---- render ---------------------------------------------------------
 
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
 
   return (
     <Screen scroll={false}>

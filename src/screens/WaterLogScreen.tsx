@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-import { Button, Screen, Text } from '../components';
+import { Button, LoadingScreen, Screen, Text } from '../components';
 import { useDailyLog } from '../state/DailyLogProvider';
 import { useTheme } from '../theme';
 
@@ -9,15 +9,15 @@ import { useTheme } from '../theme';
  * daily goal, and a calm "hydrated" state when the goal is reached.
  *
  * Subscribes to the {@link DailyLogProvider} — if the store is still loading
- * (initial repository read), nothing is rendered under the modal backdrop so
- * the user sees a brief empty state before the data appears.
+ * (initial repository read), shows a calm themed placeholder under the modal
+ * backdrop so the user does not see a blank flash.
  */
 export function WaterLogScreen() {
   const { theme } = useTheme();
   const { waterGlasses, goal, hydrated, loading, logGlass, undoGlass } =
     useDailyLog();
 
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
 
   const pct = Math.min(waterGlasses / goal, 1);
   const fillWidth = pct * 100;

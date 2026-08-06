@@ -7,3 +7,4 @@ export { SettingsRow } from './SettingsRow';
 export { DotGrid } from './DotGrid';
 export { TicksRing } from './TicksRing';
 export { PlaceholderScreen } from './PlaceholderScreen';
+export { LoadingScreen } from './LoadingScreen';

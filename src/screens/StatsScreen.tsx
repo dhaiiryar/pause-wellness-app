@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-import { DotGrid, Screen, Text } from '../components';
+import { DotGrid, LoadingScreen, Screen, Text } from '../components';
 import { useDailyLog } from '../state/DailyLogProvider';
 import { useTheme } from '../theme';
 
@@ -12,7 +12,7 @@ export function StatsScreen() {
   const { theme } = useTheme();
   const { loading, date, eyeBreaks, waterGlasses, recent } = useDailyLog();
 
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
 
   return (
     <Screen>
