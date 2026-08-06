@@ -1,7 +1,8 @@
 import { View } from 'react-native';
 
 import { useTheme } from '../theme';
-import { previousDays, type DailyLog } from '../types/log';
+import { parseDateKey, previousDays, type DailyLog } from '../types/log';
+import { Text } from './Text';
 
 type Feature = 'eye' | 'water';
 
@@ -12,6 +13,8 @@ type DotGridProps = {
   accessibilityLabel?: string;
 };
 
+const DOT_SIZE = 14;
+
 /**
  * A soft 7-day dot grid for a single feature.
  *
@@ -19,6 +22,7 @@ type DotGridProps = {
  *   left-to-right as a timeline.
  * - Filled when there was any activity that day; empty otherwise.
  * - No numbers, no streaks, no targets — just a calm visual pattern.
+ * - Single-letter weekday labels under each dot (local timezone via date keys).
  */
 export function DotGrid({ feature, today, recent, accessibilityLabel }: DotGridProps) {
   const { theme } = useTheme();
@@ -48,20 +52,37 @@ export function DotGrid({ feature, today, recent, accessibilityLabel }: DotGridP
             ? log.eyeBreaks > 0
             : log.waterGlasses > 0
           : false;
+        const weekday = parseDateKey(date).toLocaleDateString(undefined, {
+          weekday: 'narrow',
+        });
 
         return (
           <View
             key={date}
-            testID={`${feature}-dot-${date}`}
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: 6,
-              backgroundColor: filled ? theme.colors.primary : 'transparent',
-              borderWidth: 1,
-              borderColor: filled ? theme.colors.primary : theme.colors.surfaceAlt,
-            }}
-          />
+            style={{ alignItems: 'center', gap: theme.spacing.xs }}
+          >
+            <View
+              testID={`${feature}-dot-${date}`}
+              style={{
+                width: DOT_SIZE,
+                height: DOT_SIZE,
+                borderRadius: DOT_SIZE / 2,
+                backgroundColor: filled ? theme.colors.primary : 'transparent',
+                borderWidth: 1,
+                borderColor: filled ? theme.colors.primary : theme.colors.border,
+              }}
+            />
+            <Text
+              variant="caption"
+              tone="muted"
+              allowFontScaling={false}
+              importantForAccessibility="no"
+              accessibilityElementsHidden
+              style={{ fontSize: 11, lineHeight: 14 }}
+            >
+              {weekday}
+            </Text>
+          </View>
         );
       })}
     </View>

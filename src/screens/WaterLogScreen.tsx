@@ -1,6 +1,7 @@
-import { View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AccessibilityInfo, Animated, View } from 'react-native';
 
-import { Button, LoadingScreen, Screen, Text } from '../components';
+import { Button, Card, LoadingScreen, Screen, Text } from '../components';
 import { useDailyLog } from '../state/DailyLogProvider';
 import { useTheme } from '../theme';
 
@@ -17,69 +18,96 @@ export function WaterLogScreen() {
   const { waterGlasses, goal, hydrated, loading, logGlass, undoGlass } =
     useDailyLog();
 
+  const pct = Math.min(waterGlasses / goal, 1);
+
+  // Animate fill width when waterGlasses/goal change. useNativeDriver: false
+  // because we animate layout width (not transform). Accessibility values stay
+  // on the real counts, not intermediate animation frames.
+  const [fillAnim] = useState(() => new Animated.Value(pct));
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (!cancelled) setReduceMotion(enabled);
+    });
+    const sub = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      setReduceMotion,
+    );
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    const animation = Animated.timing(fillAnim, {
+      toValue: pct,
+      duration: reduceMotion ? 0 : 250,
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [fillAnim, pct, reduceMotion]);
+
   if (loading) return <LoadingScreen />;
 
-  const pct = Math.min(waterGlasses / goal, 1);
-  const fillWidth = pct * 100;
+  const fillWidth = fillAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
 
   return (
     <Screen scroll={false}>
       <View style={{ flex: 1, justifyContent: 'center', gap: theme.spacing.xxl }}>
 
-        {/* ---- count ---- */}
-        <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <Text
-            style={{
-              color: theme.colors.text,
-              fontSize: theme.typography.heading,
-              fontFamily: theme.typography.familyLight,
-            }}
-          >
-            {waterGlasses}{' '}
-            <Text style={{ color: theme.colors.textMuted }}>
-              / {goal} glasses
+        {/* ---- count + progress ---- */}
+        <Card style={{ gap: theme.spacing.lg }}>
+          <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            <Text
+              accessibilityLabel={`${waterGlasses} of ${goal} glasses logged`}
+            >
+              <Text variant="display">{waterGlasses}</Text>
+              <Text variant="title" tone="muted">
+                {` / ${goal} glasses`}
+              </Text>
             </Text>
-          </Text>
 
-          {/* ---- gentle hydrated state ---- */}
-          {hydrated && (
-          <Text
-            style={{
-              color: theme.colors.primaryText,
-              fontSize: theme.typography.body,
-              fontFamily: theme.typography.familyRegular,
-            }}
-          >
-            You're hydrated — well done.
-          </Text>
-          )}
-        </View>
+            {hydrated && (
+              <Text variant="body" tone="primary">
+                {"You're hydrated — well done."}
+              </Text>
+            )}
+          </View>
 
-        {/* ---- progress bar ---- */}
-        <View
-          style={{
-            height: 8,
-            borderRadius: theme.radii.pill,
-            backgroundColor: theme.colors.surface,
-            overflow: 'hidden',
-          }}
-          accessibilityRole="progressbar"
-          accessibilityLabel={`${waterGlasses} of ${goal} glasses`}
-          accessibilityValue={{
-            min: 0,
-            max: goal,
-            now: waterGlasses,
-          }}
-        >
           <View
             style={{
-              height: '100%',
-              width: `${fillWidth}%`,
+              height: 12,
               borderRadius: theme.radii.pill,
-              backgroundColor: theme.colors.primary,
+              backgroundColor: theme.colors.surfaceAlt,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              overflow: 'hidden',
             }}
-          />
-        </View>
+            accessibilityRole="progressbar"
+            accessibilityLabel={`${waterGlasses} of ${goal} glasses`}
+            accessibilityValue={{
+              min: 0,
+              max: goal,
+              now: waterGlasses,
+            }}
+          >
+            <Animated.View
+              style={{
+                height: '100%',
+                width: fillWidth,
+                borderRadius: theme.radii.pill,
+                backgroundColor: theme.colors.primary,
+              }}
+            />
+          </View>
+        </Card>
 
         {/* ---- actions ---- */}
         <View style={{ gap: theme.spacing.lg }}>
