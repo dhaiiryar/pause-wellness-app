@@ -55,6 +55,9 @@ export function DotGrid({ feature, today, recent, accessibilityLabel }: DotGridP
         const weekday = parseDateKey(date).toLocaleDateString(undefined, {
           weekday: 'narrow',
         });
+        // Water uses accent; eye uses primary — feature distinction without clutter.
+        const filledColor =
+          feature === 'water' ? theme.colors.accent : theme.colors.primary;
 
         return (
           <View
@@ -67,9 +70,9 @@ export function DotGrid({ feature, today, recent, accessibilityLabel }: DotGridP
                 width: DOT_SIZE,
                 height: DOT_SIZE,
                 borderRadius: DOT_SIZE / 2,
-                backgroundColor: filled ? theme.colors.primary : 'transparent',
+                backgroundColor: filled ? filledColor : 'transparent',
                 borderWidth: 1,
-                borderColor: filled ? theme.colors.primary : theme.colors.border,
+                borderColor: filled ? filledColor : theme.colors.border,
               }}
             />
             <Text

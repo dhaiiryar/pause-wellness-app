@@ -103,7 +103,10 @@ export function WaterLogScreen() {
                 height: '100%',
                 width: fillWidth,
                 borderRadius: theme.radii.pill,
-                backgroundColor: theme.colors.primary,
+                // Accent when hydrated — brand cue without changing the primary CTA.
+                backgroundColor: hydrated
+                  ? theme.colors.accent
+                  : theme.colors.primary,
               }}
             />
           </View>
