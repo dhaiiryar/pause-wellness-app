@@ -11,8 +11,8 @@ import { RouteNames, type RootStackParamList } from '../navigation/routes';
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
 /**
- * Home tab: calm daily dashboard with today's eye/water counts, eye-pause
- * control, and quick entry into Eye Rest and Water Log.
+ * Home tab: calm daily dashboard with today's eye/water counts, per-feature
+ * pause controls, and quick entry into Eye Rest and Water Log.
  */
 export function HomeScreen() {
   const { theme } = useTheme();
@@ -94,6 +94,30 @@ export function HomeScreen() {
               {"You're hydrated — well done."}
             </Text>
           )}
+
+          <Pressable
+            onPress={() =>
+              updateSettings({ waterPaused: !settings.waterPaused })
+            }
+            accessible={false}
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: theme.spacing.md,
+            }}
+          >
+            <Text variant="body" style={{ flexShrink: 1 }}>
+              Pause water reminders
+            </Text>
+            <Switch
+              value={settings.waterPaused}
+              onValueChange={(v) => updateSettings({ waterPaused: v })}
+              trackColor={{ true: theme.colors.primary }}
+              accessibilityLabel="Pause water reminders"
+              accessibilityHint="Pauses water reminders until turned back on"
+            />
+          </Pressable>
 
           <Button
             label="Log Water"

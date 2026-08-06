@@ -16,8 +16,9 @@ export type WaterSchedulerDeps = {
  * Cancel all currently scheduled water notifications and re-queue them for
  * today + the next 2 days using inexact `Date` triggers.
  *
- * - Reads settings from the repository; if `waterEnabled` is false, cancels
- *   all water notifications and returns immediately.
+ * - Reads settings from the repository; if `waterEnabled` is false or
+ *   `waterPaused` is true, cancels all water notifications and returns
+ *   immediately.
  * - For today, if the daily log already shows glasses ≥ goal (hydrated),
  *   today's batch is skipped — remaining today's reminders won't re-fire.
  * - Each notification carries `data: { feature: 'water' }` so the
@@ -35,9 +36,9 @@ export async function rescheduleWaterReminders(
   const { repo, notifications, now } = deps;
   const settings = await repo.getSettings();
 
-  // ---- feature disabled → cancel everything ----------------------------
+  // ---- feature disabled or paused → cancel everything ------------------
 
-  if (!settings.waterEnabled) {
+  if (!settings.waterEnabled || settings.waterPaused) {
     await cancelAllWater(repo, notifications);
     return;
   }

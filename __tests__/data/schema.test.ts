@@ -64,15 +64,16 @@ function fakeDb(initialVersion = 0) {
 }
 
 describe('migrate()', () => {
-  it('creates the settings table without a duplicate eyePaused column on a fresh DB', async () => {
+  it('creates the settings table with pause columns on a fresh DB', async () => {
     const db = fakeDb(0);
     await expect(migrate(db as never)).resolves.not.toThrow();
-    expect(db.version).toBe(4);
+    expect(db.version).toBe(5);
     expect(db.columns.settings).toBeDefined();
     expect(db.columns.settings!.has('eyePaused')).toBe(true);
+    expect(db.columns.settings!.has('waterPaused')).toBe(true);
   });
 
-  it('upgrades an existing v3 DB by adding eyePaused via ALTER', async () => {
+  it('upgrades an existing v3 DB by adding eyePaused then waterPaused via ALTER', async () => {
     const db = fakeDb(3);
     (db.columns as Record<string, Set<string>>).settings = new Set([
       'id',
@@ -87,5 +88,26 @@ describe('migrate()', () => {
     ]);
     await expect(migrate(db as never)).resolves.not.toThrow();
     expect(db.columns.settings!.has('eyePaused')).toBe(true);
+    expect(db.columns.settings!.has('waterPaused')).toBe(true);
+    expect(db.version).toBe(5);
+  });
+
+  it('upgrades an existing v4 DB by adding waterPaused via ALTER', async () => {
+    const db = fakeDb(4);
+    (db.columns as Record<string, Set<string>>).settings = new Set([
+      'id',
+      'activeHoursStart',
+      'activeHoursEnd',
+      'waterGoalGlasses',
+      'soundEnabled',
+      'themeMode',
+      'eyeEnabled',
+      'eyePaused',
+      'waterEnabled',
+      'onboardingComplete',
+    ]);
+    await expect(migrate(db as never)).resolves.not.toThrow();
+    expect(db.columns.settings!.has('waterPaused')).toBe(true);
+    expect(db.version).toBe(5);
   });
 });

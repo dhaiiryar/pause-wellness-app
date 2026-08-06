@@ -17,6 +17,7 @@ export type Settings = {
   eyeEnabled: boolean;
   eyePaused: boolean;
   waterEnabled: boolean;
+  waterPaused: boolean;
   onboardingComplete: boolean;
 };
 
@@ -29,5 +30,6 @@ export const DEFAULT_SETTINGS: Settings = {
   eyeEnabled: true,
   eyePaused: false,
   waterEnabled: true,
+  waterPaused: false,
   onboardingComplete: false,
 };

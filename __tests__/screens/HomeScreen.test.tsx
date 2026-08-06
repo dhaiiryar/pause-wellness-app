@@ -74,6 +74,23 @@ describe('HomeScreen', () => {
     });
   });
 
+  it('toggles water pause via the switch and persists', async () => {
+    const repo = new InMemoryRepository({ waterPaused: false });
+    const { getByRole } = await renderHome(repo);
+
+    const toggle = await waitFor(() =>
+      getByRole('switch', { name: 'Pause water reminders' })
+    );
+    expect(toggle.props.accessibilityHint).toBe(
+      'Pauses water reminders until turned back on'
+    );
+
+    fireEvent(toggle, 'valueChange', true);
+    await waitFor(async () => {
+      expect((await repo.getSettings()).waterPaused).toBe(true);
+    });
+  });
+
   it("shows today's eye break count", async () => {
     const repo = new InMemoryRepository({ waterGoalGlasses: 8 });
     await repo.upsertLog({

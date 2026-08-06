@@ -74,6 +74,7 @@ export function SchedulingProvider({ children }: { children: ReactNode }) {
     () =>
       [
         settings.waterEnabled,
+        settings.waterPaused,
         settings.eyeEnabled,
         settings.eyePaused,
         settings.activeHoursStart,
