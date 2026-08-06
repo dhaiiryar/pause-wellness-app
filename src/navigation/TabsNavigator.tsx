@@ -1,5 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { type ComponentProps } from 'react';
+import { type ComponentProps, type ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { useTheme } from '../theme';
@@ -15,41 +15,82 @@ import { RouteNames, type TabsParamList } from './routes';
 const Tabs = createBottomTabNavigator<TabsParamList>();
 
 /**
- * A calm, minimal tab icon: a small rounded mark in the theme palette. Kept
- * geometric (no icon-library dependency) for this slice; later slices may swap
- * in a proper icon set.
+ * Intentional on-theme tab glyphs built from Views — no icon-library dependency.
+ * Active/inactive tint comes from React Navigation via the `color` prop.
  */
-function TabMark({ color, shape }: { color: string; shape: 'circle' | 'grid' | 'sliders' }) {
-  const mark = (() => {
-    if (shape === 'grid') {
-      return (
-        <View style={{ flexDirection: 'row', gap: 3 }}>
-          {[0, 1].map((r) => (
-            <View key={r} style={{ flexDirection: 'column', gap: 3 }}>
-              {[0, 1].map((c) => (
-                <View key={c} style={{ width: 6, height: 6, borderRadius: 2, backgroundColor: color }} />
-              ))}
-            </View>
-          ))}
-        </View>
-      );
-    }
-    if (shape === 'sliders') {
-      return (
-        <View style={{ flexDirection: 'column', gap: 4 }}>
-          {[0, 1, 2].map((i) => (
-            <View key={i} style={{ width: 16, height: 2, borderRadius: 1, backgroundColor: color }} />
-          ))}
-        </View>
-      );
-    }
-    return <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: color }} />;
-  })();
-
+function withA11yHidden(glyph: ReactNode) {
   return (
     <View accessible={false} importantForAccessibility="no-hide-descendants">
-      {mark}
+      {glyph}
     </View>
+  );
+}
+
+/** Pause bars — brand-aligned home mark (two vertical rounded rects). */
+function PauseGlyph({ color }: { color: string }) {
+  return withA11yHidden(
+    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', height: 22 }}>
+      <View style={{ width: 5, height: 18, borderRadius: 2, backgroundColor: color }} />
+      <View style={{ width: 5, height: 18, borderRadius: 2, backgroundColor: color }} />
+    </View>,
+  );
+}
+
+/** Mini bar chart — three vertical bars of different heights. */
+function StatsGlyph({ color }: { color: string }) {
+  const heights = [10, 16, 12] as const;
+  return withA11yHidden(
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: 3,
+        alignItems: 'flex-end',
+        height: 22,
+        width: 22,
+      }}
+    >
+      {heights.map((h, i) => (
+        <View
+          key={i}
+          style={{ width: 5, height: h, borderRadius: 1.5, backgroundColor: color }}
+        />
+      ))}
+    </View>,
+  );
+}
+
+/** Improved sliders — three tracks with thumbs at different x-offsets. */
+function SettingsGlyph({ color }: { color: string }) {
+  // Thumb left offsets (px) on an 18-wide track: left / mid / right-ish.
+  const thumbLeft = [1, 6, 10] as const;
+  return withA11yHidden(
+    <View style={{ flexDirection: 'column', gap: 5, justifyContent: 'center', height: 22 }}>
+      {thumbLeft.map((left, i) => (
+        <View key={i} style={{ width: 18, height: 6, justifyContent: 'center' }}>
+          <View
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              height: 2,
+              borderRadius: 1,
+              backgroundColor: color,
+              top: 2,
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              left,
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: color,
+            }}
+          />
+        </View>
+      ))}
+    </View>,
   );
 }
 
@@ -91,7 +132,7 @@ export function TabsNavigator() {
         options={{
           title: 'Home',
           tabBarAccessibilityLabel: 'Home tab',
-          tabBarIcon: ({ color }: TabIconProps) => <TabMark color={color} shape="circle" />,
+          tabBarIcon: ({ color }: TabIconProps) => <PauseGlyph color={color} />,
         }}
       />
       <Tabs.Screen
@@ -100,7 +141,7 @@ export function TabsNavigator() {
         options={{
           title: 'Stats',
           tabBarAccessibilityLabel: 'Stats tab',
-          tabBarIcon: ({ color }: TabIconProps) => <TabMark color={color} shape="grid" />,
+          tabBarIcon: ({ color }: TabIconProps) => <StatsGlyph color={color} />,
         }}
       />
       <Tabs.Screen
@@ -109,7 +150,7 @@ export function TabsNavigator() {
         options={{
           title: 'Settings',
           tabBarAccessibilityLabel: 'Settings tab',
-          tabBarIcon: ({ color }: TabIconProps) => <TabMark color={color} shape="sliders" />,
+          tabBarIcon: ({ color }: TabIconProps) => <SettingsGlyph color={color} />,
         }}
       />
     </Tabs.Navigator>
