@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { Screen, TicksRing, Text } from '../components';
@@ -7,6 +7,8 @@ import { useDailyLog } from '../state/DailyLogProvider';
 import { useTheme } from '../theme';
 
 const DURATION_S = 20;
+const RING = 200;
+const BREATHE_CIRCLE = 80;
 
 /**
  * Calm guided 20-second eye-rest experience.
@@ -14,13 +16,13 @@ const DURATION_S = 20;
  * - A `setInterval`-driven countdown ticks every second; when it reaches 0
  *   `completeBreak` is called (logs one `eyeBreak` via the daily state machine)
  *   and the modal dismisses.
- * - A slow breathing animation (~5s in / ~5s out) plays on a centered circle.
- * - A countdown ring depletes over the 20 seconds using two half-circle clips
- *   rotated by animated values.
+ * - A slow breathing animation (~5s in / ~5s out) plays on a centered circle
+ *   via native-driver scale transforms only.
+ * - A multi-layer calm wash (primary + accent soft circles) sets atmosphere.
  * - Early dismissal (Close button / back gesture) logs nothing.
  */
 export function EyeRestScreen() {
-  const { theme } = useTheme();
+  const { theme, scheme } = useTheme();
   const navigation = useNavigation();
   const { loading, completeBreak } = useDailyLog();
 
@@ -53,22 +55,27 @@ export function EyeRestScreen() {
     }
   }, [secondsLeft, completeBreak, navigation]);
 
-  // ---- breathing animation --------------------------------------------
+  // ---- breathing animation (scale-only, native driver) ----------------
+  // Lazy useState keeps a stable Animated.Value without reading a ref in render
+  // (satisfies react-hooks/refs while preserving the classic RN pattern).
 
-  const breatheAnim = useRef(new Animated.Value(0)).current;
+  const [breatheAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
+    const easing = Easing.inOut(Easing.sin);
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(breatheAnim, {
           toValue: 1,
           duration: 5000,
-          useNativeDriver: false,
+          easing,
+          useNativeDriver: true,
         }),
         Animated.timing(breatheAnim, {
           toValue: 0,
           duration: 5000,
-          useNativeDriver: false,
+          easing,
+          useNativeDriver: true,
         }),
       ]),
     );
@@ -76,23 +83,19 @@ export function EyeRestScreen() {
     return () => loop.stop();
   }, [breatheAnim]);
 
-  const breatheScale = breatheAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.85, 1.15],
-  });
+  const breatheScale = useMemo(
+    () =>
+      breatheAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.85, 1.15],
+      }),
+    [breatheAnim],
+  );
 
-  // ---- countdown ring (depleting radial ticks) --------------------------
-  //
-  // The ring is `DURATION_S` radial ticks around a circle. `lit` follows
-  // `secondsLeft`, so each per-second tick of the setInterval turns off one
-  // tick clockwise from 12 o'clock. Previously the ring used two rotated
-  // full-ring outlines clipped to halves — but a rotationally-symmetric
-  // annulus pivoted at its own center has zero visible shape change, so
-  // the only motion was a single left-half opacity flip at the 10s mark.
-  // Driving the ring off the per-second state gives a visible per-second
-  // countdown and a clean regression seam (testID per tick).
-
-  const RING = 200;
+  // Soft primary wash is slightly stronger in dark mode so the sage tint reads.
+  const primaryWashOpacity = scheme === 'dark' ? 0.18 : 0.12;
+  const primaryWashSize = RING * 1.4;
+  const accentWashSize = RING * 1.1;
 
   // ---- render ---------------------------------------------------------
 
@@ -100,8 +103,9 @@ export function EyeRestScreen() {
 
   return (
     <Screen scroll={false}>
-      {/* ---- calm gradient (layered translucent views) ---- */}
+      {/* ---- calm atmosphere (layered washes; pointerEvents none) ---- */}
       <View
+        pointerEvents="none"
         style={{
           position: 'absolute',
           top: 0,
@@ -109,19 +113,37 @@ export function EyeRestScreen() {
           right: 0,
           bottom: 0,
           backgroundColor: theme.colors.surface,
-          opacity: 0.25,
+          opacity: 0.2,
         }}
       />
       <View
+        pointerEvents="none"
         style={{
           position: 'absolute',
-          top: '30%',
-          left: '20%',
-          width: '60%',
-          height: '40%',
-          borderRadius: theme.radii.xl,
-          backgroundColor: theme.colors.surface,
-          opacity: 0.15,
+          top: '50%',
+          left: '50%',
+          width: primaryWashSize,
+          height: primaryWashSize,
+          marginTop: -primaryWashSize / 2 - 24,
+          marginLeft: -primaryWashSize / 2,
+          borderRadius: primaryWashSize / 2,
+          backgroundColor: theme.colors.primary,
+          opacity: primaryWashOpacity,
+        }}
+      />
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          width: accentWashSize,
+          height: accentWashSize,
+          marginTop: -accentWashSize / 2 + 48,
+          marginLeft: -accentWashSize / 2 + 20,
+          borderRadius: accentWashSize / 2,
+          backgroundColor: theme.colors.accent,
+          opacity: 0.08,
         }}
       />
 
@@ -144,60 +166,51 @@ export function EyeRestScreen() {
           <View
             style={{
               position: 'absolute',
-              top: RING / 2 - 40,
-              left: RING / 2 - 40,
-              width: 80,
-              height: 80,
+              top: RING / 2 - BREATHE_CIRCLE / 2,
+              left: RING / 2 - BREATHE_CIRCLE / 2,
+              width: BREATHE_CIRCLE,
+              height: BREATHE_CIRCLE,
               justifyContent: 'center',
               alignItems: 'center',
             }}
           >
+            {/*
+              Outer node: scale-only transform (native driver).
+              Inner node: static fill + countdown text (no animated props).
+            */}
             <Animated.View
               style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: theme.colors.surface,
+                width: BREATHE_CIRCLE,
+                height: BREATHE_CIRCLE,
                 justifyContent: 'center',
                 alignItems: 'center',
-                opacity: 0.9,
                 transform: [{ scale: breatheScale }],
               }}
               accessibilityLabel="Breathing guide"
             >
-              <Text
+              <View
                 style={{
-                  color: theme.colors.text,
-                  fontSize: theme.typography.heading,
-                  fontFamily: theme.typography.familyLight,
+                  width: BREATHE_CIRCLE,
+                  height: BREATHE_CIRCLE,
+                  borderRadius: BREATHE_CIRCLE / 2,
+                  backgroundColor: theme.colors.surface,
+                  opacity: 0.9,
+                  justifyContent: 'center',
+                  alignItems: 'center',
                 }}
               >
-                {secondsLeft}
-              </Text>
+                <Text variant="heading">{secondsLeft}</Text>
+              </View>
             </Animated.View>
           </View>
         </View>
 
         {/* ---- prompt ---- */}
         <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <Text
-            style={{
-              color: theme.colors.text,
-              fontSize: theme.typography.title,
-              fontFamily: theme.typography.familyRegular,
-              textAlign: 'center',
-            }}
-          >
+          <Text variant="title" style={{ textAlign: 'center' }}>
             look 20 ft away · breathe
           </Text>
-          <Text
-            style={{
-              color: theme.colors.textMuted,
-              fontSize: theme.typography.caption,
-              fontFamily: theme.typography.familyRegular,
-              textAlign: 'center',
-            }}
-          >
+          <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
             Close or go back to skip
           </Text>
         </View>
