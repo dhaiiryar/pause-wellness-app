@@ -61,6 +61,7 @@ describe('rescheduleWaterReminders', () => {
       .calls[0][0];
     expect(firstCall.trigger.channelId).toBe('water');
     expect(firstCall.content.data).toEqual({ feature: 'water' });
+    expect(firstCall.content.categoryIdentifier).toBe('water_actions');
   });
 
   it('uses the muted channel when sounds are disabled', async () => {

@@ -1,13 +1,20 @@
+import {
+  DEFAULT_ACTION_IDENTIFIER,
+  LOG_GLASS_ACTION_IDENTIFIER,
+} from '../notifications/categoryIds';
 import { RouteNames, type RootStackParamList } from './routes';
 
+export { DEFAULT_ACTION_IDENTIFIER, LOG_GLASS_ACTION_IDENTIFIER };
+
 /**
- * Minimal shape of a notification response relevant to routing.
+ * Minimal shape of a notification response relevant to routing / actions.
  *
  * Does NOT import `expo-notifications` — the function is pure and testable
  * without the OS module. At the call-site a real `NotificationResponse` is
  * compatible with this shape.
  */
 export type NotificationResponseShape = {
+  actionIdentifier?: string;
   notification: {
     request: {
       content: {
@@ -15,6 +22,15 @@ export type NotificationResponseShape = {
       };
     };
   };
+};
+
+export type HandleNotificationDeps = {
+  navigate: (
+    route: keyof RootStackParamList,
+    params?: Record<string, unknown>,
+  ) => void;
+  /** Injected so tests can mock; production wires `logGlassViaRepo`. */
+  logGlass: () => Promise<void>;
 };
 
 /**
@@ -28,7 +44,10 @@ export type NotificationResponseShape = {
  */
 export function routeNotificationResponse(
   response: NotificationResponseShape,
-  navigate: (route: keyof RootStackParamList, params?: Record<string, unknown>) => void,
+  navigate: (
+    route: keyof RootStackParamList,
+    params?: Record<string, unknown>,
+  ) => void,
 ): void {
   const feature = response.notification.request.content.data?.feature;
   if (feature === 'water') {
@@ -37,4 +56,29 @@ export function routeNotificationResponse(
     navigate(RouteNames.EyeRest, { feature: 'eye' });
   }
   // Unknown or missing feature → no-op (don't navigate).
+}
+
+/**
+ * Handle a notification interaction: action buttons or default body tap.
+ *
+ * - `LOG_GLASS` + water → log via deps (no navigation).
+ * - Default (or missing) action → existing modal routing.
+ * - LOG_GLASS on non-water features is ignored (eye must not complete from shade).
+ */
+export async function handleNotificationResponse(
+  response: NotificationResponseShape,
+  deps: HandleNotificationDeps,
+): Promise<void> {
+  const action =
+    response.actionIdentifier ?? DEFAULT_ACTION_IDENTIFIER;
+  const feature = response.notification.request.content.data?.feature;
+
+  if (action === LOG_GLASS_ACTION_IDENTIFIER) {
+    if (feature === 'water') {
+      await deps.logGlass();
+    }
+    return;
+  }
+
+  routeNotificationResponse(response, deps.navigate);
 }

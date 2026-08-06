@@ -32,7 +32,7 @@ and update your row when done.
 | 010  | Notification permission recovery in Settings | P1 | S–M | — | DONE |
 | 011  | One-tap log glass from Home | P2 | S | 009 preferred (Water card) | DONE |
 | 012  | Native active-hours time pickers | P2 | M | — | DONE |
-| 013  | Notification action buttons (spike + optional MVP) | P3 | L | 010 recommended | TODO |
+| 013  | Notification action buttons (spike + optional MVP) | P3 | L | 010 recommended | DONE (spike + water Log glass MVP) |
 
 Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED` (one-line reason) | `REJECTED` (one-line rationale)
 

@@ -19,7 +19,7 @@ import {
   RootNavigator,
   linking,
   RouteNames,
-  routeNotificationResponse,
+  handleNotificationResponse,
   type RootStackParamList,
 } from './src/navigation';
 import { ThemeProvider, useTheme } from './src/theme';
@@ -27,13 +27,17 @@ import {
   type Repository,
   RepositoryProvider,
   createRepository,
+  logGlassViaRepo,
 } from './src/data';
 import {
   SettingsProvider,
   useSettings,
 } from './src/state/SettingsProvider';
 import { SchedulingProvider } from './src/state/SchedulingProvider';
-import { DailyLogProvider } from './src/state/DailyLogProvider';
+import {
+  DailyLogProvider,
+  useDailyLog,
+} from './src/state/DailyLogProvider';
 import { ensureNotificationChannels } from './src/permissions';
 
 // Keep the splash visible until fonts + repository are ready.
@@ -52,30 +56,44 @@ function SettingsBackedThemeProvider({ children }: { children: ReactNode }) {
 
 function ThemedApp({
   initialRouteName,
+  repository,
 }: {
   initialRouteName: keyof RootStackParamList;
+  repository: Repository;
 }) {
   const { theme, scheme } = useTheme();
+  const { refresh: refreshDailyLog } = useDailyLog();
 
-  // ---- notification response → modal routing (tap while closed) ------
+  // ---- notification response → modal routing / Log glass action ------
   // The linking config covers cold-start deep links; this listener
-  // covers taps while the app is already running or in the background.
+  // covers taps (and action buttons) while running or woken from killed.
+  // Repo is closed over from App — no global singleton. After a shade
+  // log we refresh DailyLog so in-memory counts match the repository.
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener(
-      (response) =>
-        routeNotificationResponse(response, (route, params) => {
-          if (navigationRef.isReady()) {
-            // routeNotificationResponse already narrows route to valid modal
-            // routes; the generic navigation ref overload is too strict here.
-            (navigationRef.navigate as (name: string, params?: unknown) => void)(
-              route,
-              params,
-            );
-          }
-        }),
+      (response) => {
+        void handleNotificationResponse(response, {
+          navigate: (route, params) => {
+            if (navigationRef.isReady()) {
+              // handleNotificationResponse narrows route to valid modal
+              // routes; the generic navigation ref overload is too strict.
+              (
+                navigationRef.navigate as (
+                  name: string,
+                  params?: unknown,
+                ) => void
+              )(route, params);
+            }
+          },
+          logGlass: async () => {
+            await logGlassViaRepo(repository);
+            await refreshDailyLog();
+          },
+        });
+      },
     );
     return () => sub.remove();
-  }, []);
+  }, [repository, refreshDailyLog]);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -145,7 +163,10 @@ export default function App() {
           <SchedulingProvider>
             <DailyLogProvider>
               <SettingsBackedThemeProvider>
-                <ThemedApp initialRouteName={initialRoute} />
+                <ThemedApp
+                  initialRouteName={initialRoute}
+                  repository={repo}
+                />
               </SettingsBackedThemeProvider>
             </DailyLogProvider>
           </SchedulingProvider>

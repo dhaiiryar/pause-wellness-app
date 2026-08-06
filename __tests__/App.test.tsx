@@ -29,7 +29,7 @@ describe('App', () => {
     const { getByText } = await render(<App />);
 
     expect(getByText('Start Eye Rest')).toBeTruthy();
-    expect(getByText('Log Water')).toBeTruthy();
+    expect(getByText('Log a glass')).toBeTruthy();
   });
 
   it('shows onboarding when onboarding is not complete', async () => {

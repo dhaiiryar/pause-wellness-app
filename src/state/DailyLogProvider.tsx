@@ -21,6 +21,8 @@ export type DailyLogValue = DailyState & {
   logGlass: () => Promise<void>;
   undoGlass: () => Promise<void>;
   completeBreak: () => Promise<void>;
+  /** Reload today from the repository (e.g. after an external write). */
+  refresh: () => Promise<void>;
 };
 
 const DailyLogContext = createContext<DailyLogValue | undefined>(undefined);
@@ -145,7 +147,11 @@ export function DailyLogProvider({ children }: { children: ReactNode }) {
     }
   }, [liveGoal, state]);
 
-  // ---- date-change detection (rollover on foreground) -----------
+  // ---- date-change + external write sync on foreground -----------
+  //
+  // Rollover when the calendar day advanced while backgrounded.
+  // Same-day reload picks up writes that bypassed React (e.g. notification
+  // LOG_GLASS action via logGlassViaRepo).
 
   useEffect(() => {
     const handleChange = (nextStatus: AppStateStatus) => {
@@ -154,11 +160,13 @@ export function DailyLogProvider({ children }: { children: ReactNode }) {
       const actualToday = todayKey();
       if (state.date !== actualToday) {
         performRollover(actualToday, state);
+      } else {
+        void loadToday();
       }
     };
     const sub = AppState.addEventListener('change', handleChange);
     return () => sub.remove();
-  }, [state, performRollover]);
+  }, [state, performRollover, loadToday]);
 
   // ---- actions (pure reducer → persist → side-effect) ------------
 
@@ -219,6 +227,7 @@ export function DailyLogProvider({ children }: { children: ReactNode }) {
     logGlass,
     undoGlass,
     completeBreak,
+    refresh: loadToday,
   };
 
   return (

@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
 import type { Repository } from '../data/Repository';
+import { WATER_CATEGORY_IDENTIFIER } from '../notifications/categoryIds';
 import { shouldCancelRemainingWater } from '../state/dailyLogReducer';
 import { todayKey } from '../types/log';
 import { computeWaterReminderTimes } from './waterReminders';
@@ -22,7 +23,8 @@ export type WaterSchedulerDeps = {
  * - For today, if the daily log already shows glasses ≥ goal (hydrated),
  *   today's batch is skipped — remaining today's reminders won't re-fire.
  * - Each notification carries `data: { feature: 'water' }` so the
- *   response listener can route the tap to the WaterLog modal.
+ *   response listener can route the tap to the WaterLog modal, and
+ *   `categoryIdentifier: water_actions` so Android shows **Log glass**.
  * - The `channelId` is `'water'` (chime + vibration) when
  *   `settings.soundEnabled === true`; `'water_muted'` (vibration only)
  *   otherwise.
@@ -81,6 +83,7 @@ export async function rescheduleWaterReminders(
             title: 'Pause · Water',
             body: 'Time for a glass of water',
             data: { feature: 'water' },
+            categoryIdentifier: WATER_CATEGORY_IDENTIFIER,
           },
           trigger: {
             type: SchedulableTriggerInputTypes.DATE,
