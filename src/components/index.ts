@@ -1,6 +1,9 @@
 export { Screen } from './Screen';
 export { Button } from './Button';
 export { Text } from './Text';
+export type { TextVariant, TextTone } from './Text';
+export { Card } from './Card';
+export { SettingsRow } from './SettingsRow';
 export { DotGrid } from './DotGrid';
 export { TicksRing } from './TicksRing';
 export { PlaceholderScreen } from './PlaceholderScreen';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Switch, TextInput, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Switch, TextInput, View, type TextStyle } from 'react-native';
 
-import { Screen, Text } from '../components';
+import { Screen, SettingsRow, Text } from '../components';
 import { useSettings } from '../state/SettingsProvider';
 import { useTheme } from '../theme';
 
@@ -33,32 +33,6 @@ export function SettingsScreen() {
   }, [loading, settings]);
 
   if (loading) return null;
-
-  // ---- shared row styles --------------------------------------------------
-
-  const row: ViewStyle = {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: theme.spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    gap: theme.spacing.md,
-  };
-
-  const label: TextStyle = {
-    color: theme.colors.text,
-    fontSize: theme.typography.body,
-    fontFamily: theme.typography.familyRegular,
-    flexShrink: 1,
-  };
-
-  const muted: TextStyle = {
-    color: theme.colors.textMuted,
-    fontSize: theme.typography.caption,
-    fontFamily: theme.typography.familyRegular,
-    flexShrink: 0,
-  };
 
   const input: TextStyle = {
     color: theme.colors.text,
@@ -111,12 +85,10 @@ export function SettingsScreen() {
 
         {/* ---- Notification toggles ---- */}
 
-        <Pressable
+        <SettingsRow
+          label="Reminder sounds"
           onPress={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
-          accessible={false}
-          style={row}
         >
-          <Text style={label}>Reminder sounds</Text>
           <Switch
             value={settings.soundEnabled}
             onValueChange={(v) => updateSettings({ soundEnabled: v })}
@@ -124,14 +96,12 @@ export function SettingsScreen() {
             accessibilityLabel="Reminder sounds"
             accessibilityHint="Plays a soft chime with each reminder"
           />
-        </Pressable>
+        </SettingsRow>
 
-        <Pressable
+        <SettingsRow
+          label="Water reminders"
           onPress={() => updateSettings({ waterEnabled: !settings.waterEnabled })}
-          accessible={false}
-          style={row}
         >
-          <Text style={label}>Water reminders</Text>
           <Switch
             value={settings.waterEnabled}
             onValueChange={(v) => updateSettings({ waterEnabled: v })}
@@ -139,19 +109,13 @@ export function SettingsScreen() {
             accessibilityLabel="Water reminders"
             accessibilityHint="Sends gentle hydration nudges during active hours"
           />
-        </Pressable>
+        </SettingsRow>
 
-        <Pressable
+        <SettingsRow
+          label="Eye reminders"
+          description="Gentle 20-20-20 nudges during active hours"
           onPress={() => updateSettings({ eyeEnabled: !settings.eyeEnabled })}
-          accessible={false}
-          style={row}
         >
-          <View style={{ flexShrink: 1 }}>
-            <Text style={label}>Eye reminders</Text>
-            <Text style={muted}>
-              Gentle 20-20-20 nudges during active hours
-            </Text>
-          </View>
           <Switch
             value={settings.eyeEnabled}
             onValueChange={(v) => updateSettings({ eyeEnabled: v })}
@@ -159,12 +123,11 @@ export function SettingsScreen() {
             accessibilityLabel="Eye reminders"
             accessibilityHint="Sends gentle 20-20-20 eye-rest nudges during active hours"
           />
-        </Pressable>
+        </SettingsRow>
 
         {/* ---- Daily water goal ---- */}
 
-        <View style={row}>
-          <Text style={label}>Daily water goal (glasses)</Text>
+        <SettingsRow label="Daily water goal (glasses)">
           <TextInput
             value={goalText}
             onChangeText={setGoalText}
@@ -178,12 +141,11 @@ export function SettingsScreen() {
             allowFontScaling
             maxFontSizeMultiplier={1.5}
           />
-        </View>
+        </SettingsRow>
 
         {/* ---- Active hours ---- */}
 
-        <View style={row}>
-          <Text style={label}>Active hours start</Text>
+        <SettingsRow label="Active hours start">
           <TextInput
             value={startText}
             onChangeText={setStartText}
@@ -211,10 +173,9 @@ export function SettingsScreen() {
             allowFontScaling
             maxFontSizeMultiplier={1.5}
           />
-        </View>
+        </SettingsRow>
 
-        <View style={row}>
-          <Text style={label}>Active hours end</Text>
+        <SettingsRow label="Active hours end">
           <TextInput
             value={endText}
             onChangeText={setEndText}
@@ -234,16 +195,15 @@ export function SettingsScreen() {
             allowFontScaling
             maxFontSizeMultiplier={1.5}
           />
-        </View>
+        </SettingsRow>
 
         {/* ---- Validation hint ---- */}
 
         {(!startValid || !endValid) && (
           <Text
-            style={[
-              muted,
-              { textAlign: 'center', paddingVertical: theme.spacing.md },
-            ]}
+            variant="caption"
+            tone="muted"
+            style={{ textAlign: 'center', paddingVertical: theme.spacing.md }}
           >
             Enter times as HH:MM (e.g. 08:00)
           </Text>
