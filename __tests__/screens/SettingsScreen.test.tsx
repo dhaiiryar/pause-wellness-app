@@ -8,6 +8,38 @@ import { SettingsProvider } from '../../src/state/SettingsProvider';
 import { SettingsScreen } from '../../src/screens/SettingsScreen';
 import { ThemeProvider } from '../../src/theme';
 
+/**
+ * Mock the native picker as a button that immediately commits a fixed time
+ * (09:30) when pressed — Jest has no Android system dialog.
+ */
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = require('react');
+  const { Pressable, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: ({
+      onChange,
+      value,
+    }: {
+      onChange?: (event: { type: string }, date?: Date) => void;
+      value: Date;
+    }) =>
+      React.createElement(
+        Pressable,
+        {
+          accessibilityRole: 'button',
+          accessibilityLabel: 'Mock time picker',
+          onPress: () => {
+            const next = new Date(value);
+            next.setHours(9, 30, 0, 0);
+            onChange?.({ type: 'set' }, next);
+          },
+        },
+        React.createElement(Text, null, 'Mock time picker'),
+      ),
+  };
+});
+
 async function renderSettings(repo: InMemoryRepository) {
   return render(
     <RepositoryProvider repository={repo}>
@@ -72,17 +104,60 @@ describe('SettingsScreen', () => {
     expect(input.props.accessibilityHint).toBe('Enter a number from 1 to 20');
   });
 
-  it('shows current active hours', async () => {
+  it('shows current active hours as text', async () => {
     const repo = new InMemoryRepository({
       activeHoursStart: '09:00',
       activeHoursEnd: '18:00',
     });
-    const { getByDisplayValue } = await renderSettings(repo);
+    const { getByLabelText, getByText } = await renderSettings(repo);
 
     await waitFor(() => {
-      expect(getByDisplayValue('09:00')).toBeTruthy();
-      expect(getByDisplayValue('18:00')).toBeTruthy();
+      expect(getByLabelText('Active hours start')).toBeTruthy();
+      expect(getByLabelText('Active hours end')).toBeTruthy();
     });
+    expect(getByText('09:00')).toBeTruthy();
+    expect(getByText('18:00')).toBeTruthy();
+  });
+
+  it('persists a picked active-hours start time as HH:MM', async () => {
+    const repo = new InMemoryRepository({
+      activeHoursStart: '08:00',
+      activeHoursEnd: '21:00',
+    });
+    const { getByLabelText } = await renderSettings(repo);
+
+    const startControl = await waitFor(() =>
+      getByLabelText('Active hours start'),
+    );
+    fireEvent.press(startControl);
+
+    const picker = await waitFor(() => getByLabelText('Mock time picker'));
+    fireEvent.press(picker);
+
+    await waitFor(async () => {
+      expect((await repo.getSettings()).activeHoursStart).toBe('09:30');
+    });
+    // End hour unchanged
+    expect((await repo.getSettings()).activeHoursEnd).toBe('21:00');
+  });
+
+  it('persists a picked active-hours end time as HH:MM', async () => {
+    const repo = new InMemoryRepository({
+      activeHoursStart: '08:00',
+      activeHoursEnd: '21:00',
+    });
+    const { getByLabelText } = await renderSettings(repo);
+
+    const endControl = await waitFor(() => getByLabelText('Active hours end'));
+    fireEvent.press(endControl);
+
+    const picker = await waitFor(() => getByLabelText('Mock time picker'));
+    fireEvent.press(picker);
+
+    await waitFor(async () => {
+      expect((await repo.getSettings()).activeHoursEnd).toBe('09:30');
+    });
+    expect((await repo.getSettings()).activeHoursStart).toBe('08:00');
   });
 
   it('persists theme mode when Light is selected', async () => {

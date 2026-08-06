@@ -50,6 +50,9 @@ const config: ExpoConfig = {
         dark: { backgroundColor: "#1B2A22" },
       },
     ],
+    // Required by `npx expo install @react-native-community/datetimepicker`
+    // (dynamic app.config.ts cannot be auto-patched). Native rebuild needed.
+    "@react-native-community/datetimepicker",
   ],
   web: {
     favicon: "./assets/favicon.png",

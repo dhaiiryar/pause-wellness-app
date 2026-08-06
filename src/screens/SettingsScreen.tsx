@@ -6,6 +6,9 @@ import {
   View,
   type TextStyle,
 } from 'react-native';
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 
 import { LoadingScreen, Screen, SettingsRow, Text } from '../components';
 import {
@@ -22,6 +25,23 @@ const THEME_MODES: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
 ];
+
+type ActiveHoursField = 'start' | 'end';
+
+/** Parse persisted "HH:MM" into a Date for the native time picker. */
+function parseHm(hm: string): Date {
+  const [h, m] = hm.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+/** Format a Date from the picker back to the storage contract "HH:MM". */
+function formatHm(d: Date): string {
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
 
 /**
  * Real Settings screen (slice 04).
@@ -40,6 +60,7 @@ export function SettingsScreen() {
   const [goalText, setGoalText] = useState(String(settings.waterGoalGlasses));
   const [startText, setStartText] = useState(settings.activeHoursStart);
   const [endText, setEndText] = useState(settings.activeHoursEnd);
+  const [picking, setPicking] = useState<ActiveHoursField | null>(null);
 
   // Live OS permission status — never stored in app settings.
   const [permission, setPermission] = useState<PermissionResult | 'loading'>(
@@ -98,26 +119,32 @@ export function SettingsScreen() {
     }
   };
 
-  const validateAndCommitTime = (
-    text: string,
-    field: 'activeHoursStart' | 'activeHoursEnd',
-    setter: (v: string) => void,
-  ) => {
-    const match = text.match(/^\d{2}:\d{2}$/);
-    if (!match) {
-      setter(settings[field]); // revert
-      return;
+  const commitPickedTime = (field: ActiveHoursField, date: Date) => {
+    const hm = formatHm(date);
+    if (field === 'start') {
+      setStartText(hm);
+      updateSettings({ activeHoursStart: hm });
+    } else {
+      setEndText(hm);
+      updateSettings({ activeHoursEnd: hm });
     }
-    const [h, m] = text.split(':').map(Number);
-    if (h < 0 || h > 23 || m < 0 || m > 59) {
-      setter(settings[field]); // revert
-      return;
-    }
-    updateSettings({ [field]: text });
   };
 
-  const startValid = startText.match(/^\d{2}:\d{2}$/);
-  const endValid = endText.match(/^\d{2}:\d{2}$/);
+  const onTimePickerChange = (
+    event: DateTimePickerEvent,
+    date?: Date,
+  ) => {
+    // Android fires 'dismissed' when the user cancels the system dialog.
+    if (event.type === 'dismissed') {
+      setPicking(null);
+      return;
+    }
+    if (event.type === 'set' && date != null && picking != null) {
+      commitPickedTime(picking, date);
+      setPicking(null);
+    }
+  };
+
   const needsRecovery =
     permission === 'denied' || permission === 'unknown';
 
@@ -248,67 +275,48 @@ export function SettingsScreen() {
           />
         </SettingsRow>
 
-        <SettingsRow label="Active hours start">
-          <TextInput
-            value={startText}
-            onChangeText={setStartText}
-            onBlur={() =>
-              validateAndCommitTime(
-                startText,
-                'activeHoursStart',
-                setStartText,
-              )
-            }
-            onSubmitEditing={() =>
-              validateAndCommitTime(
-                startText,
-                'activeHoursStart',
-                setStartText,
-              )
-            }
-            keyboardType="numbers-and-punctuation"
-            maxLength={5}
-            style={input}
+        <SettingsRow
+          label="Active hours start"
+          onPress={() => setPicking('start')}
+        >
+          <Pressable
+            onPress={() => setPicking('start')}
+            accessibilityRole="button"
             accessibilityLabel="Active hours start"
-            accessibilityHint="24-hour time in HH:MM format"
-            placeholder="HH:MM"
-            placeholderTextColor={theme.colors.textMuted}
-            allowFontScaling
-            maxFontSizeMultiplier={1.5}
-          />
-        </SettingsRow>
-
-        <SettingsRow label="Active hours end" last>
-          <TextInput
-            value={endText}
-            onChangeText={setEndText}
-            onBlur={() =>
-              validateAndCommitTime(endText, 'activeHoursEnd', setEndText)
-            }
-            onSubmitEditing={() =>
-              validateAndCommitTime(endText, 'activeHoursEnd', setEndText)
-            }
-            keyboardType="numbers-and-punctuation"
-            maxLength={5}
-            style={input}
-            accessibilityLabel="Active hours end"
-            accessibilityHint="24-hour time in HH:MM format"
-            placeholder="HH:MM"
-            placeholderTextColor={theme.colors.textMuted}
-            allowFontScaling
-            maxFontSizeMultiplier={1.5}
-          />
-        </SettingsRow>
-
-        {(!startValid || !endValid) && (
-          <Text
-            variant="caption"
-            tone="muted"
-            style={{ textAlign: 'center', paddingVertical: theme.spacing.md }}
+            accessibilityHint="Opens a time picker for when active hours begin"
+            accessibilityValue={{ text: startText }}
+            hitSlop={8}
           >
-            Enter times as HH:MM (e.g. 08:00)
-          </Text>
-        )}
+            <Text variant="body">{startText}</Text>
+          </Pressable>
+        </SettingsRow>
+
+        <SettingsRow
+          label="Active hours end"
+          onPress={() => setPicking('end')}
+          last
+        >
+          <Pressable
+            onPress={() => setPicking('end')}
+            accessibilityRole="button"
+            accessibilityLabel="Active hours end"
+            accessibilityHint="Opens a time picker for when active hours end"
+            accessibilityValue={{ text: endText }}
+            hitSlop={8}
+          >
+            <Text variant="body">{endText}</Text>
+          </Pressable>
+        </SettingsRow>
+
+        {picking != null ? (
+          <DateTimePicker
+            value={parseHm(picking === 'start' ? startText : endText)}
+            mode="time"
+            is24Hour
+            display="default"
+            onChange={onTimePickerChange}
+          />
+        ) : null}
 
         {/* ---- Appearance ---- */}
         <Text
