@@ -8,6 +8,11 @@ import {
 } from 'react-native';
 
 import { LoadingScreen, Screen, SettingsRow, Text } from '../components';
+import {
+  getNotificationPermission,
+  openAppNotificationSettings,
+  type PermissionResult,
+} from '../permissions';
 import { useSettings } from '../state/SettingsProvider';
 import { useTheme } from '../theme';
 import { type ThemeMode } from '../types/settings';
@@ -36,6 +41,11 @@ export function SettingsScreen() {
   const [startText, setStartText] = useState(settings.activeHoursStart);
   const [endText, setEndText] = useState(settings.activeHoursEnd);
 
+  // Live OS permission status — never stored in app settings.
+  const [permission, setPermission] = useState<PermissionResult | 'loading'>(
+    'loading',
+  );
+
   // Sync local state when the async settings load completes.
   useEffect(() => {
     if (!loading) {
@@ -44,6 +54,17 @@ export function SettingsScreen() {
       setEndText(settings.activeHoursEnd);
     }
   }, [loading, settings]);
+
+  // Read notification permission once on mount (live from OS).
+  useEffect(() => {
+    let cancelled = false;
+    getNotificationPermission().then((result) => {
+      if (!cancelled) setPermission(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (loading) return <LoadingScreen />;
 
@@ -97,15 +118,66 @@ export function SettingsScreen() {
 
   const startValid = startText.match(/^\d{2}:\d{2}$/);
   const endValid = endText.match(/^\d{2}:\d{2}$/);
+  const needsRecovery =
+    permission === 'denied' || permission === 'unknown';
 
   return (
     <Screen scroll>
       <View style={{ gap: theme.spacing.xs }}>
-        {/* ---- Reminders ---- */}
+        {/* ---- Notifications ---- */}
         <Text
           variant="caption"
           tone="muted"
           style={{ ...sectionTitleStyle, marginTop: theme.spacing.sm }}
+        >
+          Notifications
+        </Text>
+
+        {permission === 'granted' ? (
+          <SettingsRow label="Notifications" last>
+            <Text variant="caption" tone="muted">
+              Allowed
+            </Text>
+          </SettingsRow>
+        ) : needsRecovery ? (
+          <>
+            <Text
+              variant="caption"
+              tone="muted"
+              style={{ marginBottom: theme.spacing.xs }}
+            >
+              Reminders need notification permission to reach you.
+            </Text>
+            <SettingsRow
+              label="Open system settings"
+              description="Enable notifications for Pause"
+              onPress={() => {
+                void openAppNotificationSettings();
+              }}
+              last
+            >
+              <Pressable
+                onPress={() => {
+                  void openAppNotificationSettings();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Open system settings"
+                accessibilityHint="Opens system settings so you can enable notifications for Pause"
+                hitSlop={8}
+              >
+                <Text variant="body" tone="primary">
+                  Open
+                </Text>
+              </Pressable>
+            </SettingsRow>
+          </>
+        ) : null}
+
+        {/* ---- Reminders ---- */}
+        <Text
+          variant="caption"
+          tone="muted"
+          style={{ ...sectionTitleStyle, marginTop: theme.spacing.xl }}
         >
           Reminders
         </Text>

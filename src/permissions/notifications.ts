@@ -1,3 +1,4 @@
+import { Linking } from "react-native";
 import * as Notifications from "expo-notifications";
 
 export type PermissionResult = "granted" | "denied" | "unknown";
@@ -70,5 +71,30 @@ export async function requestNotificationPermission(): Promise<PermissionResult>
     return granted ? "granted" : "denied";
   } catch {
     return "unknown";
+  }
+}
+
+/**
+ * Read the current notification permission without prompting.
+ * Always reads live from the OS — never cached in app storage.
+ */
+export async function getNotificationPermission(): Promise<PermissionResult> {
+  try {
+    const { granted } = await Notifications.getPermissionsAsync();
+    return granted ? "granted" : "denied";
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
+ * Open the app's system settings page so the user can re-enable notifications.
+ * Safe no-op if Linking is unavailable.
+ */
+export async function openAppNotificationSettings(): Promise<void> {
+  try {
+    await Linking.openSettings();
+  } catch {
+    // Unavailable in some environments — safe to ignore
   }
 }

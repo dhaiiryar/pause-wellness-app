@@ -1,5 +1,7 @@
 /// <reference types="jest" />
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { Linking } from 'react-native';
+import * as Notifications from 'expo-notifications';
 
 import { RepositoryProvider, InMemoryRepository } from '../../src/data';
 import { SettingsProvider } from '../../src/state/SettingsProvider';
@@ -19,6 +21,18 @@ async function renderSettings(repo: InMemoryRepository) {
 }
 
 describe('SettingsScreen', () => {
+  beforeEach(() => {
+    jest.mocked(Notifications.getPermissionsAsync).mockResolvedValue({
+      granted: false,
+      status: 'denied',
+    } as Awaited<ReturnType<typeof Notifications.getPermissionsAsync>>);
+    jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('toggles reminder sounds off and persists', async () => {
     const repo = new InMemoryRepository({ soundEnabled: true });
     const { getByRole } = await renderSettings(repo);
@@ -96,5 +110,57 @@ describe('SettingsScreen', () => {
     expect(system.props.accessibilityState).toEqual(
       expect.objectContaining({ selected: false }),
     );
+  });
+
+  describe('notification permission recovery', () => {
+    it('shows Open system settings when permission is denied', async () => {
+      jest.mocked(Notifications.getPermissionsAsync).mockResolvedValue({
+        granted: false,
+        status: 'denied',
+      } as Awaited<ReturnType<typeof Notifications.getPermissionsAsync>>);
+
+      const repo = new InMemoryRepository();
+      const { getByLabelText, getByText } = await renderSettings(repo);
+
+      await waitFor(() => {
+        expect(getByLabelText('Open system settings')).toBeTruthy();
+      });
+      expect(
+        getByText('Reminders need notification permission to reach you.'),
+      ).toBeTruthy();
+    });
+
+    it('opens system settings when recovery control is pressed', async () => {
+      jest.mocked(Notifications.getPermissionsAsync).mockResolvedValue({
+        granted: false,
+        status: 'denied',
+      } as Awaited<ReturnType<typeof Notifications.getPermissionsAsync>>);
+      const openSettings = jest
+        .spyOn(Linking, 'openSettings')
+        .mockResolvedValue(undefined);
+
+      const repo = new InMemoryRepository();
+      const { getByLabelText } = await renderSettings(repo);
+
+      const cta = await waitFor(() => getByLabelText('Open system settings'));
+      fireEvent.press(cta);
+
+      expect(openSettings).toHaveBeenCalled();
+    });
+
+    it('shows Allowed and no recovery CTA when permission is granted', async () => {
+      jest.mocked(Notifications.getPermissionsAsync).mockResolvedValue({
+        granted: true,
+        status: 'granted',
+      } as Awaited<ReturnType<typeof Notifications.getPermissionsAsync>>);
+
+      const repo = new InMemoryRepository();
+      const { getByText, queryByLabelText } = await renderSettings(repo);
+
+      await waitFor(() => {
+        expect(getByText('Allowed')).toBeTruthy();
+      });
+      expect(queryByLabelText('Open system settings')).toBeNull();
+    });
   });
 });
