@@ -7,6 +7,7 @@ import { RouteNames, type RootStackParamList } from '../../src/navigation/routes
 import { OnboardingScreen } from '../../src/screens/OnboardingScreen';
 import { RepositoryProvider, InMemoryRepository } from '../../src/data';
 import { HomeScreen } from '../../src/screens/HomeScreen';
+import { DailyLogProvider } from '../../src/state/DailyLogProvider';
 import { SettingsProvider } from '../../src/state/SettingsProvider';
 import { ThemeProvider } from '../../src/theme';
 
@@ -41,9 +42,11 @@ async function renderOnboarding(repo: InMemoryRepository) {
   return render(
     <RepositoryProvider repository={repo}>
       <SettingsProvider>
-        <ThemeProvider mode="system">
-          <TestNavigator initial={RouteNames.Onboarding} />
-        </ThemeProvider>
+        <DailyLogProvider>
+          <ThemeProvider mode="system">
+            <TestNavigator initial={RouteNames.Onboarding} />
+          </ThemeProvider>
+        </DailyLogProvider>
       </SettingsProvider>
     </RepositoryProvider>
   );

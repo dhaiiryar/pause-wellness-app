@@ -6,8 +6,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { RouteNames, type TabsParamList } from '../../src/navigation/routes';
 import { HomeScreen } from '../../src/screens/HomeScreen';
 import { RepositoryProvider, InMemoryRepository } from '../../src/data';
+import { DailyLogProvider } from '../../src/state/DailyLogProvider';
 import { SettingsProvider } from '../../src/state/SettingsProvider';
 import { ThemeProvider } from '../../src/theme';
+import { todayKey } from '../../src/types/log';
 
 const Tabs = createBottomTabNavigator<TabsParamList>();
 
@@ -29,9 +31,11 @@ async function renderHome(repo: InMemoryRepository) {
   return render(
     <RepositoryProvider repository={repo}>
       <SettingsProvider>
-        <ThemeProvider mode="system">
-          <TestNavigator />
-        </ThemeProvider>
+        <DailyLogProvider>
+          <ThemeProvider mode="system">
+            <TestNavigator />
+          </ThemeProvider>
+        </DailyLogProvider>
       </SettingsProvider>
     </RepositoryProvider>
   );
@@ -68,5 +72,44 @@ describe('HomeScreen', () => {
     await waitFor(async () => {
       expect((await repo.getSettings()).eyePaused).toBe(true);
     });
+  });
+
+  it("shows today's eye break count", async () => {
+    const repo = new InMemoryRepository({ waterGoalGlasses: 8 });
+    await repo.upsertLog({
+      date: todayKey(),
+      eyeBreaks: 3,
+      waterGlasses: 0,
+    });
+
+    const { findByLabelText } = await renderHome(repo);
+
+    await findByLabelText('3 eye breaks today');
+  });
+
+  it('shows water count vs goal', async () => {
+    const repo = new InMemoryRepository({ waterGoalGlasses: 8 });
+    await repo.upsertLog({
+      date: todayKey(),
+      eyeBreaks: 0,
+      waterGlasses: 2,
+    });
+
+    const { findByLabelText } = await renderHome(repo);
+
+    await findByLabelText('2 of 8 glasses');
+  });
+
+  it('shows the hydrated message when goal is reached', async () => {
+    const repo = new InMemoryRepository({ waterGoalGlasses: 8 });
+    await repo.upsertLog({
+      date: todayKey(),
+      eyeBreaks: 0,
+      waterGlasses: 8,
+    });
+
+    const { findByText } = await renderHome(repo);
+
+    await findByText("You're hydrated — well done.");
   });
 });
