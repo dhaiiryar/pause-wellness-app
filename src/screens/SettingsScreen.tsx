@@ -1,9 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Switch, TextInput, View, type TextStyle } from 'react-native';
+import {
+  Pressable,
+  Switch,
+  TextInput,
+  View,
+  type TextStyle,
+} from 'react-native';
 
 import { Screen, SettingsRow, Text } from '../components';
 import { useSettings } from '../state/SettingsProvider';
 import { useTheme } from '../theme';
+import { type ThemeMode } from '../types/settings';
+
+const THEME_MODES: { value: ThemeMode; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
 
 /**
  * Real Settings screen (slice 04).
@@ -46,6 +59,12 @@ export function SettingsScreen() {
     textAlign: 'center',
   };
 
+  const sectionTitleStyle = {
+    marginBottom: theme.spacing.sm,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase' as const,
+  };
+
   // ---- commit helpers -----------------------------------------------------
 
   const commitGoal = () => {
@@ -82,8 +101,14 @@ export function SettingsScreen() {
   return (
     <Screen scroll>
       <View style={{ gap: theme.spacing.xs }}>
-
-        {/* ---- Notification toggles ---- */}
+        {/* ---- Reminders ---- */}
+        <Text
+          variant="caption"
+          tone="muted"
+          style={{ ...sectionTitleStyle, marginTop: theme.spacing.sm }}
+        >
+          Reminders
+        </Text>
 
         <SettingsRow
           label="Reminder sounds"
@@ -115,6 +140,7 @@ export function SettingsScreen() {
           label="Eye reminders"
           description="Gentle 20-20-20 nudges during active hours"
           onPress={() => updateSettings({ eyeEnabled: !settings.eyeEnabled })}
+          last
         >
           <Switch
             value={settings.eyeEnabled}
@@ -125,7 +151,14 @@ export function SettingsScreen() {
           />
         </SettingsRow>
 
-        {/* ---- Daily water goal ---- */}
+        {/* ---- Schedule ---- */}
+        <Text
+          variant="caption"
+          tone="muted"
+          style={{ ...sectionTitleStyle, marginTop: theme.spacing.xl }}
+        >
+          Schedule
+        </Text>
 
         <SettingsRow label="Daily water goal (glasses)">
           <TextInput
@@ -142,8 +175,6 @@ export function SettingsScreen() {
             maxFontSizeMultiplier={1.5}
           />
         </SettingsRow>
-
-        {/* ---- Active hours ---- */}
 
         <SettingsRow label="Active hours start">
           <TextInput
@@ -175,7 +206,7 @@ export function SettingsScreen() {
           />
         </SettingsRow>
 
-        <SettingsRow label="Active hours end">
+        <SettingsRow label="Active hours end" last>
           <TextInput
             value={endText}
             onChangeText={setEndText}
@@ -197,8 +228,6 @@ export function SettingsScreen() {
           />
         </SettingsRow>
 
-        {/* ---- Validation hint ---- */}
-
         {(!startValid || !endValid) && (
           <Text
             variant="caption"
@@ -208,6 +237,65 @@ export function SettingsScreen() {
             Enter times as HH:MM (e.g. 08:00)
           </Text>
         )}
+
+        {/* ---- Appearance ---- */}
+        <Text
+          variant="caption"
+          tone="muted"
+          style={{ ...sectionTitleStyle, marginTop: theme.spacing.xl }}
+        >
+          Appearance
+        </Text>
+
+        <Text variant="body">Theme</Text>
+        <Text
+          variant="caption"
+          tone="muted"
+          style={{ marginBottom: theme.spacing.sm }}
+        >
+          Follows device when set to System
+        </Text>
+
+        <View
+          accessibilityRole="radiogroup"
+          style={{
+            flexDirection: 'row',
+            backgroundColor: theme.colors.surfaceAlt,
+            borderRadius: theme.radii.sm,
+            padding: theme.spacing.xs,
+            gap: theme.spacing.xs,
+          }}
+        >
+          {THEME_MODES.map(({ value, label }) => {
+            const selected = settings.themeMode === value;
+            return (
+              <Pressable
+                key={value}
+                onPress={() => updateSettings({ themeMode: value })}
+                accessibilityRole="radio"
+                accessibilityLabel={`Theme ${label.toLowerCase()}`}
+                accessibilityState={{ selected }}
+                accessibilityHint={selected ? 'Currently selected' : undefined}
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  paddingVertical: theme.spacing.sm,
+                  borderRadius: theme.radii.sm,
+                  backgroundColor: selected
+                    ? theme.colors.primary
+                    : 'transparent',
+                }}
+              >
+                <Text
+                  variant="body"
+                  tone={selected ? 'onPrimary' : 'default'}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </Screen>
   );

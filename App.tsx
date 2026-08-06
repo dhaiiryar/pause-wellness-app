@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   createNavigationContainerRef,
   NavigationContainer,
@@ -28,7 +28,10 @@ import {
   RepositoryProvider,
   createRepository,
 } from './src/data';
-import { SettingsProvider } from './src/state/SettingsProvider';
+import {
+  SettingsProvider,
+  useSettings,
+} from './src/state/SettingsProvider';
 import { SchedulingProvider } from './src/state/SchedulingProvider';
 import { DailyLogProvider } from './src/state/DailyLogProvider';
 import { ensureNotificationChannels } from './src/permissions';
@@ -40,6 +43,12 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 const navigationRef =
   createNavigationContainerRef<RootStackParamList>();
+
+/** Bridges persisted themeMode into ThemeProvider (must sit under SettingsProvider). */
+function SettingsBackedThemeProvider({ children }: { children: ReactNode }) {
+  const { settings } = useSettings();
+  return <ThemeProvider mode={settings.themeMode}>{children}</ThemeProvider>;
+}
 
 function ThemedApp({
   initialRouteName,
@@ -135,9 +144,9 @@ export default function App() {
         <SettingsProvider>
           <SchedulingProvider>
             <DailyLogProvider>
-              <ThemeProvider mode="system">
+              <SettingsBackedThemeProvider>
                 <ThemedApp initialRouteName={initialRoute} />
-              </ThemeProvider>
+              </SettingsBackedThemeProvider>
             </DailyLogProvider>
           </SchedulingProvider>
         </SettingsProvider>

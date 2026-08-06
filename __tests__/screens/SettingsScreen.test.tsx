@@ -70,4 +70,31 @@ describe('SettingsScreen', () => {
       expect(getByDisplayValue('18:00')).toBeTruthy();
     });
   });
+
+  it('persists theme mode when Light is selected', async () => {
+    const repo = new InMemoryRepository({ themeMode: 'system' });
+    const { getByLabelText } = await renderSettings(repo);
+
+    const light = await waitFor(() => getByLabelText('Theme light'));
+    fireEvent.press(light);
+
+    await waitFor(async () => {
+      expect((await repo.getSettings()).themeMode).toBe('light');
+    });
+  });
+
+  it('shows current theme mode as selected', async () => {
+    const repo = new InMemoryRepository({ themeMode: 'dark' });
+    const { getByLabelText } = await renderSettings(repo);
+
+    const dark = await waitFor(() => getByLabelText('Theme dark'));
+    expect(dark.props.accessibilityState).toEqual(
+      expect.objectContaining({ selected: true }),
+    );
+
+    const system = getByLabelText('Theme system');
+    expect(system.props.accessibilityState).toEqual(
+      expect.objectContaining({ selected: false }),
+    );
+  });
 });
