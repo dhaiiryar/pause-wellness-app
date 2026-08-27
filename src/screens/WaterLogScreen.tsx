@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, View } from 'react-native';
 
-import { Button, Card, LoadingScreen, Screen, Text } from '../components';
+import { Button, LoadingScreen, Screen, Text } from '../components';
 import { useDailyLog } from '../state/DailyLogProvider';
 import { useTheme } from '../theme';
 
@@ -61,59 +61,56 @@ export function WaterLogScreen() {
   return (
     <Screen scroll={false}>
       <View style={{ flex: 1, justifyContent: 'center', gap: theme.spacing.xxl }}>
-
-        {/* ---- count + progress ---- */}
-        <Card style={{ gap: theme.spacing.lg }}>
-          <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <Text
-              accessibilityLabel={`${waterGlasses} of ${goal} glasses logged`}
-            >
-              <Text variant="display">{waterGlasses}</Text>
-              <Text variant="title" tone="muted">
-                {` / ${goal} glasses`}
-              </Text>
-            </Text>
-
-            {hydrated && (
-              <Text variant="body" tone="primary">
-                {"You're hydrated — well done."}
-              </Text>
-            )}
-          </View>
-
-          <View
-            style={{
-              height: 12,
-              borderRadius: theme.radii.pill,
-              backgroundColor: theme.colors.surfaceAlt,
-              borderWidth: 1,
-              borderColor: theme.colors.border,
-              overflow: 'hidden',
-            }}
-            accessibilityRole="progressbar"
-            accessibilityLabel={`${waterGlasses} of ${goal} glasses`}
-            accessibilityValue={{
-              min: 0,
-              max: goal,
-              now: waterGlasses,
-            }}
+        <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
+          <Text
+            accessibilityLabel={`${waterGlasses} of ${goal} glasses logged`}
           >
-            <Animated.View
-              style={{
-                height: '100%',
-                width: fillWidth,
-                borderRadius: theme.radii.pill,
-                // Accent when hydrated — brand cue without changing the primary CTA.
-                backgroundColor: hydrated
-                  ? theme.colors.accent
-                  : theme.colors.primary,
-              }}
-            />
-          </View>
-        </Card>
+            <Text variant="display">{waterGlasses}</Text>
+            <Text variant="title" tone="muted">
+              {` / ${goal}`}
+            </Text>
+          </Text>
+          <Text variant="caption" tone="muted">
+            glasses today
+          </Text>
 
-        {/* ---- actions ---- */}
-        <View style={{ gap: theme.spacing.lg }}>
+          {hydrated && (
+            <Text variant="body" tone="primary">
+              {"You're hydrated — well done."}
+            </Text>
+          )}
+        </View>
+
+        <View
+          style={{
+            height: 16,
+            borderRadius: theme.radii.pill,
+            backgroundColor: theme.colors.surfaceAlt,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            overflow: 'hidden',
+          }}
+          accessibilityRole="progressbar"
+          accessibilityLabel={`${waterGlasses} of ${goal} glasses`}
+          accessibilityValue={{
+            min: 0,
+            max: goal,
+            now: waterGlasses,
+          }}
+        >
+          <Animated.View
+            style={{
+              height: '100%',
+              width: fillWidth,
+              borderRadius: theme.radii.pill,
+              backgroundColor: hydrated
+                ? theme.colors.accent
+                : theme.colors.primary,
+            }}
+          />
+        </View>
+
+        <View style={{ gap: theme.spacing.sm }}>
           <Button
             label={hydrated ? 'Log another glass' : 'Log a glass'}
             onPress={logGlass}
@@ -125,7 +122,7 @@ export function WaterLogScreen() {
           {waterGlasses > 0 && (
             <Button
               label="Undo"
-              variant="secondary"
+              variant="ghost"
               onPress={undoGlass}
               accessibilityLabel="Undo last glass"
               accessibilityHint="Removes the last logged glass"

@@ -93,7 +93,7 @@ export function EyeRestScreen() {
   );
 
   // Soft primary wash is slightly stronger in dark mode so the sage tint reads.
-  const primaryWashOpacity = scheme === 'dark' ? 0.18 : 0.12;
+  const primaryWashOpacity = scheme === 'dark' ? 0.22 : 0.16;
   const primaryWashSize = RING * 1.4;
   const accentWashSize = RING * 1.1;
 

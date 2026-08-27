@@ -1,8 +1,15 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { Pressable, Switch, View } from 'react-native';
+import { Switch, View } from 'react-native';
 
-import { Button, Card, LoadingScreen, Screen, Text } from '../components';
+import {
+  Button,
+  LoadingScreen,
+  PauseMark,
+  Screen,
+  SettingsRow,
+  Text,
+} from '../components';
 import { useDailyLog } from '../state/DailyLogProvider';
 import { useSettings } from '../state/SettingsProvider';
 import { useTheme } from '../theme';
@@ -11,9 +18,8 @@ import { RouteNames, type RootStackParamList } from '../navigation/routes';
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
 /**
- * Home tab: calm daily dashboard with today's eye/water counts, one-tap
- * water logging, per-feature pause controls, and entry into Eye Rest and
- * the full Water Log.
+ * Home tab: pause mark, today's counts, thumb-zone actions for the two
+ * rituals, then demoted pause switches. One-tap log glass stays here.
  */
 export function HomeScreen() {
   const { theme } = useTheme();
@@ -36,100 +42,90 @@ export function HomeScreen() {
       <View
         style={{
           flex: 1,
-          justifyContent: 'flex-start',
-          paddingTop: theme.spacing.xl,
-          gap: theme.spacing.xl,
+          paddingTop: theme.spacing.lg,
         }}
       >
-        <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <Text variant="display">Pause</Text>
-          <Text variant="body" tone="muted">
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: -80,
+            left: -48,
+            right: -48,
+            height: 280,
+            borderRadius: 160,
+            backgroundColor: theme.colors.primary,
+            opacity: 0.14,
+          }}
+        />
+
+        <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
+          <PauseMark size="lg" />
+          <Text variant="heading" style={{ textAlign: 'center' }}>
+            look 20 ft away
+          </Text>
+          <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
             A calm moment, whenever you need one.
           </Text>
         </View>
 
-        <Card>
-          <Text variant="title">Eye breaks</Text>
-          <Text
-            variant="display"
-            accessibilityLabel={`${eyeBreaks} eye breaks today`}
-          >
-            {eyeBreaks}
-          </Text>
-
-          <Pressable
-            onPress={() => updateSettings({ eyePaused: !settings.eyePaused })}
-            accessible={false}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: theme.spacing.md,
-            }}
-          >
-            <Text variant="body" style={{ flexShrink: 1 }}>
-              Pause eye reminders
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: theme.spacing.xxxl,
+            marginTop: theme.spacing.xxl,
+          }}
+        >
+          <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            <Text
+              variant="display"
+              accessibilityLabel={`${eyeBreaks} eye breaks today`}
+            >
+              {eyeBreaks}
             </Text>
-            <Switch
-              value={settings.eyePaused}
-              onValueChange={(v) => updateSettings({ eyePaused: v })}
-              trackColor={{ true: theme.colors.primary }}
-              accessibilityLabel="Pause eye reminders"
-              accessibilityHint="Pauses eye-break reminders until turned back on"
-            />
-          </Pressable>
+            <Text variant="caption" tone="muted">
+              breaks
+            </Text>
+          </View>
+          <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            <Text
+              accessibilityLabel={`${waterGlasses} of ${goal} glasses`}
+            >
+              <Text variant="display">{waterGlasses}</Text>
+            </Text>
+            <Text variant="caption" tone="muted">
+              {`of ${goal} glasses`}
+            </Text>
+          </View>
+        </View>
 
+        {hydrated && (
+          <Text
+            variant="body"
+            tone="primary"
+            style={{ textAlign: 'center', marginTop: theme.spacing.md }}
+          >
+            {"You're hydrated — well done."}
+          </Text>
+        )}
+
+        <View
+          style={{
+            marginTop: 'auto',
+            gap: theme.spacing.sm,
+            paddingTop: theme.spacing.xl,
+          }}
+        >
           <Button
             label="Start Eye Rest"
             onPress={() => navigation.navigate(RouteNames.EyeRest)}
             accessibilityLabel="Start eye rest"
             accessibilityHint="Opens a 20-second guided eye break"
           />
-        </Card>
-
-        <Card>
-          <Text variant="title">Water</Text>
-          <Text
-            accessibilityLabel={`${waterGlasses} of ${goal} glasses`}
-          >
-            <Text variant="display">{waterGlasses}</Text>
-            <Text variant="title" tone="muted">
-              {` / ${goal}`}
-            </Text>
-          </Text>
-
-          {hydrated && (
-            <Text variant="body" tone="primary">
-              {"You're hydrated — well done."}
-            </Text>
-          )}
-
-          <Pressable
-            onPress={() =>
-              updateSettings({ waterPaused: !settings.waterPaused })
-            }
-            accessible={false}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: theme.spacing.md,
-            }}
-          >
-            <Text variant="body" style={{ flexShrink: 1 }}>
-              Pause water reminders
-            </Text>
-            <Switch
-              value={settings.waterPaused}
-              onValueChange={(v) => updateSettings({ waterPaused: v })}
-              trackColor={{ true: theme.colors.primary }}
-              accessibilityLabel="Pause water reminders"
-              accessibilityHint="Pauses water reminders until turned back on"
-            />
-          </Pressable>
-
           <Button
             label="Log a glass"
+            variant="secondary"
             onPress={() => {
               void logGlass();
             }}
@@ -139,7 +135,7 @@ export function HomeScreen() {
           {waterGlasses > 0 && (
             <Button
               label="Undo"
-              variant="secondary"
+              variant="ghost"
               onPress={() => {
                 void undoGlass();
               }}
@@ -149,12 +145,40 @@ export function HomeScreen() {
           )}
           <Button
             label="Open water log"
-            variant="secondary"
+            variant="ghost"
             onPress={() => navigation.navigate(RouteNames.WaterLog)}
             accessibilityLabel="Open water log"
             accessibilityHint="Opens the full water log"
           />
-        </Card>
+
+          <SettingsRow
+            label="Pause eye reminders"
+            onPress={() => updateSettings({ eyePaused: !settings.eyePaused })}
+          >
+            <Switch
+              value={settings.eyePaused}
+              onValueChange={(v) => updateSettings({ eyePaused: v })}
+              trackColor={{ true: theme.colors.primary }}
+              accessibilityLabel="Pause eye reminders"
+              accessibilityHint="Pauses eye-break reminders until turned back on"
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Pause water reminders"
+            last
+            onPress={() =>
+              updateSettings({ waterPaused: !settings.waterPaused })
+            }
+          >
+            <Switch
+              value={settings.waterPaused}
+              onValueChange={(v) => updateSettings({ waterPaused: v })}
+              trackColor={{ true: theme.colors.primary }}
+              accessibilityLabel="Pause water reminders"
+              accessibilityHint="Pauses water reminders until turned back on"
+            />
+          </SettingsRow>
+        </View>
       </View>
     </Screen>
   );

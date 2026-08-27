@@ -3,7 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { View } from 'react-native';
 
-import { Button, Screen, Text } from '../components';
+import { Button, PauseMark, Screen, Text } from '../components';
 import { useTheme } from '../theme';
 import { RouteNames, type RootStackParamList } from '../navigation/routes';
 import { useRepository } from '../data';
@@ -55,21 +55,15 @@ export function OnboardingScreen() {
         </View>
 
         {/* ---- Step content ---- */}
-        <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <Text
-            style={{
-              color: theme.colors.text,
-              fontSize: theme.typography.heading,
-              fontFamily: theme.typography.familyLight,
-            }}
-          >
+        <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
+          {step === 0 ? <PauseMark size="lg" /> : null}
+          <Text variant="heading" style={{ textAlign: 'center' }}>
             {stepTitles[step]}
           </Text>
           <Text
+            variant="body"
+            tone="muted"
             style={{
-              color: theme.colors.textMuted,
-              fontSize: theme.typography.body,
-              fontFamily: theme.typography.familyRegular,
               textAlign: 'center',
               paddingHorizontal: theme.spacing.lg,
             }}
