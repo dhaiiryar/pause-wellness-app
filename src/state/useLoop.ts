@@ -17,6 +17,7 @@ export type LoopValue = {
   water: Delivery;
   permission: PermissionResult | 'loading';
   quietFor: (feature: Feature, durationMs: number) => Promise<void>;
+  quietForAll: (durationMs: number) => Promise<void>;
 };
 
 export function useLoop(): LoopValue {
@@ -73,5 +74,16 @@ export function useLoop(): LoopValue {
     [updateSettings, settings],
   );
 
-  return { eye, water, permission, quietFor };
+  const quietForAll = useCallback(
+    async (durationMs: number) => {
+      const now = new Date();
+      await updateSettings({
+        ...quietPatch(settings, 'eye', durationMs, now),
+        ...quietPatch(settings, 'water', durationMs, now),
+      });
+    },
+    [updateSettings, settings],
+  );
+
+  return { eye, water, permission, quietFor, quietForAll };
 }

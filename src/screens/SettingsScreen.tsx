@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Pressable,
   Switch,
@@ -55,23 +55,17 @@ export function SettingsScreen() {
   const { theme } = useTheme();
   const { settings, loading, updateSettings } = useSettings();
 
-  // Local state for in-progress text edits so we don't lose partial input.
-  const [goalText, setGoalText] = useState(String(settings.waterGoalGlasses));
-  const [startText, setStartText] = useState(settings.activeHoursStart);
-  const [endText, setEndText] = useState(settings.activeHoursEnd);
+  const [goalDraft, setGoalDraft] = useState<string | null>(null);
+  const [startDraft, setStartDraft] = useState<string | null>(null);
+  const [endDraft, setEndDraft] = useState<string | null>(null);
   const [picking, setPicking] = useState<ActiveHoursField | null>(null);
   const permission = useNotificationPermission();
 
-  // Sync local state when the async settings load completes.
-  useEffect(() => {
-    if (!loading) {
-      setGoalText(String(settings.waterGoalGlasses));
-      setStartText(settings.activeHoursStart);
-      setEndText(settings.activeHoursEnd);
-    }
-  }, [loading, settings]);
-
   if (loading) return <LoadingScreen />;
+
+  const goalText = goalDraft ?? String(settings.waterGoalGlasses);
+  const startText = startDraft ?? settings.activeHoursStart;
+  const endText = endDraft ?? settings.activeHoursEnd;
 
   const input: TextStyle = {
     color: theme.colors.text,
@@ -97,19 +91,19 @@ export function SettingsScreen() {
     const n = parseInt(goalText, 10);
     if (Number.isFinite(n) && n >= 1 && n <= 20) {
       updateSettings({ waterGoalGlasses: n });
+      setGoalDraft(null);
     } else {
-      // Revert to the current persisted value on invalid input.
-      setGoalText(String(settings.waterGoalGlasses));
+      setGoalDraft(null);
     }
   };
 
   const commitPickedTime = (field: ActiveHoursField, date: Date) => {
     const hm = formatHm(date);
     if (field === 'start') {
-      setStartText(hm);
+      setStartDraft(hm);
       updateSettings({ activeHoursStart: hm });
     } else {
-      setEndText(hm);
+      setEndDraft(hm);
       updateSettings({ activeHoursEnd: hm });
     }
   };
@@ -246,7 +240,7 @@ export function SettingsScreen() {
         <SettingsRow label="Daily water goal (glasses)">
           <TextInput
             value={goalText}
-            onChangeText={setGoalText}
+            onChangeText={setGoalDraft}
             onBlur={commitGoal}
             onSubmitEditing={commitGoal}
             keyboardType="number-pad"

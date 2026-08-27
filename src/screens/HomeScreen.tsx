@@ -73,7 +73,7 @@ export function HomeScreen() {
             >
               {eyeBreaks}
             </Text>
-            <Text variant="body" tone="muted">
+            <Text variant="caption" tone="muted">
               {statusLine('eye', loop.eye)}
             </Text>
           </Card>
@@ -87,7 +87,7 @@ export function HomeScreen() {
                 {` / ${goal}`}
               </Text>
             </Text>
-            <Text variant="body" tone="muted">
+            <Text variant="caption" tone="muted">
               {statusLine('water', loop.water)}
             </Text>
           </Card>
@@ -137,10 +137,7 @@ export function HomeScreen() {
             label="Quiet for 1 hour"
             variant="ghost"
             onPress={() => {
-              void (async () => {
-                await loop.quietFor('eye', QUIET_MS);
-                await loop.quietFor('water', QUIET_MS);
-              })();
+              void loop.quietForAll(QUIET_MS);
             }}
             accessibilityLabel="Quiet reminders for 1 hour"
             accessibilityHint="Silences eye and water reminders for one hour"

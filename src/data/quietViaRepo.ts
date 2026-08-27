@@ -16,12 +16,8 @@ export async function quietViaRepo(
   await applySettingsPatch(repo, (current) =>
     quietPatch(current, feature, durationMs, now()),
   );
-  try {
-    await Promise.allSettled([
-      rescheduleEyeReminders({ repo, notifications: Notifications }),
-      rescheduleWaterReminders({ repo, notifications: Notifications }),
-    ]);
-  } catch {
-    // Shade must persist the floor even if React never remounts.
-  }
+  await Promise.allSettled([
+    rescheduleEyeReminders({ repo, notifications: Notifications }),
+    rescheduleWaterReminders({ repo, notifications: Notifications }),
+  ]);
 }

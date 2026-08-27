@@ -75,9 +75,9 @@ export async function ensureNotificationChannels(): Promise<void> {
 /**
  * Register interactive notification categories (action buttons).
  *
- * Water only: "Log glass" opens the app (`opensAppToForeground: true`) so the
- * JS response listener can persist without `expo-task-manager`. Eye has no
- * complete-from-shade action (PRD 20s rule).
+ * Water: "Log glass". Eye: "Snooze". Both open the app so the JS listener
+ * can persist without expo-task-manager. Eye has no complete-from-shade
+ * action (PRD 20s rule).
  *
  * Safe to call repeatedly; failures are swallowed (iOS/headless/unavailable).
  */

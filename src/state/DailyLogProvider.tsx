@@ -113,20 +113,9 @@ export function DailyLogProvider({ children }: { children: ReactNode }) {
     })();
   }, [loadToday, performRollover]);
 
-  // ---- live goal sync (Settings → DailyLog) ----------------------------
-
-  // Push a settings goal change into the daily state so the water-log UI
-  // reflects it immediately. Skipped on the first run (liveGoal is undefined
-  // when there's no SettingsProvider, or before init); otherwise dispatches
-  // once the boot-time goal has been laid down and whenever the goal changes.
-  const bootGoalRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (liveGoal === undefined || !state) return;
-    if (bootGoalRef.current === null) bootGoalRef.current = state.goal;
-    if (liveGoal !== state.goal) {
-      setState(dailyReducer(state, { type: 'UpdateSettings', goal: liveGoal }));
-    }
-  }, [liveGoal, state]);
+  if (state && liveGoal !== undefined && liveGoal !== state.goal) {
+    setState(dailyReducer(state, { type: 'UpdateSettings', goal: liveGoal }));
+  }
 
   // ---- date-change + external write sync on foreground -----------
   //

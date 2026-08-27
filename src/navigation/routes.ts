@@ -1,5 +1,7 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import type { Feature } from '../types/feature';
+
 /**
  * Central route names + param list.
  *
@@ -18,7 +20,6 @@ export const RouteNames = {
   WaterLog: 'WaterLog',
 } as const;
 
-import type { Feature } from '../types/feature';
 export type { Feature } from '../types/feature';
 
 export type ModalParams = {
