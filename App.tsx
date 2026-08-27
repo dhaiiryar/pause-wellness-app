@@ -29,6 +29,7 @@ import {
   RepositoryProvider,
   createRepository,
   logGlassViaRepo,
+  quietViaRepo,
 } from './src/data';
 import {
   SettingsProvider,
@@ -40,6 +41,9 @@ import {
   useDailyLog,
 } from './src/state/DailyLogProvider';
 import { ensureNotificationChannels } from './src/permissions';
+import { subscribeNotificationResponses } from './src/notifications/intake';
+import { QUIET_MS } from './src/scheduling/mute';
+import './src/notifications/presentation';
 
 // Keep the splash visible until fonts + repository are ready.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -64,20 +68,20 @@ function ThemedApp({
 }) {
   const { theme, scheme } = useTheme();
   const { refresh: refreshDailyLog } = useDailyLog();
+  const { reload: reloadSettings } = useSettings();
 
-  // ---- notification response → modal routing / Log glass action ------
-  // The linking config covers cold-start deep links; this listener
-  // covers taps (and action buttons) while running or woken from killed.
-  // Repo is closed over from App — no global singleton. After a shade
-  // log we refresh DailyLog so in-memory counts match the repository.
+  // Drain last-response then listen. Dedupe is inside intake so a cold-start
+  // tap cannot log or snooze twice.
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        void handleNotificationResponse(response, {
+    return subscribeNotificationResponses({
+      getLast: () => Notifications.getLastNotificationResponse(),
+      clearLast: () => Notifications.clearLastNotificationResponse(),
+      addListener: (cb) =>
+        Notifications.addNotificationResponseReceivedListener(cb),
+      handle: (response) =>
+        handleNotificationResponse(response, {
           navigate: (route, params) => {
             if (navigationRef.isReady()) {
-              // handleNotificationResponse narrows route to valid modal
-              // routes; the generic navigation ref overload is too strict.
               (
                 navigationRef.navigate as (
                   name: string,
@@ -90,11 +94,13 @@ function ThemedApp({
             await logGlassViaRepo(repository);
             await refreshDailyLog();
           },
-        });
-      },
-    );
-    return () => sub.remove();
-  }, [repository, refreshDailyLog]);
+          snoozeEye: async () => {
+            await quietViaRepo(repository, 'eye', QUIET_MS);
+            await reloadSettings();
+          },
+        }),
+    });
+  }, [repository, refreshDailyLog, reloadSettings]);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
