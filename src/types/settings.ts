@@ -19,6 +19,9 @@ export type Settings = {
   waterEnabled: boolean;
   waterPaused: boolean;
   onboardingComplete: boolean;
+  /** ISO timestamp. '' means none. Expired values stay stored; readers treat them as none. */
+  eyeQuietUntil: string;
+  waterQuietUntil: string;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -32,4 +35,6 @@ export const DEFAULT_SETTINGS: Settings = {
   waterEnabled: true,
   waterPaused: false,
   onboardingComplete: false,
+  eyeQuietUntil: '',
+  waterQuietUntil: '',
 };

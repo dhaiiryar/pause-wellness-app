@@ -35,6 +35,19 @@ export function runRepositoryContract(
       expect(await repo.getSettings()).toEqual(next);
     });
 
+    it('persists eyeQuietUntil and waterQuietUntil', async () => {
+      const repo = await makeRepo();
+      const until = '2026-06-23T10:00:00.000Z';
+      await repo.setSettings({
+        ...DEFAULT_SETTINGS,
+        eyeQuietUntil: until,
+        waterQuietUntil: until,
+      });
+      const settings = await repo.getSettings();
+      expect(settings.eyeQuietUntil).toBe(until);
+      expect(settings.waterQuietUntil).toBe(until);
+    });
+
     it('persists onboardingComplete across reads', async () => {
       const repo = await makeRepo();
       await repo.setSettings({
