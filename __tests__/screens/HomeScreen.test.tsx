@@ -11,6 +11,11 @@ import { SettingsProvider } from '../../src/state/SettingsProvider';
 import { ThemeProvider } from '../../src/theme';
 import { todayKey } from '../../src/types/log';
 
+jest.mock('../../src/permissions/notifications', () => ({
+  ...jest.requireActual('../../src/permissions/notifications'),
+  getNotificationPermission: jest.fn(() => Promise.resolve('granted')),
+}));
+
 const Tabs = createBottomTabNavigator<TabsParamList>();
 
 function TestNavigator() {
@@ -168,5 +173,22 @@ describe('HomeScreen', () => {
     const { findByText } = await renderHome(repo);
 
     await findByText("You're hydrated — well done.");
+  });
+
+  it('quiets both features for one hour', async () => {
+    const repo = new InMemoryRepository({});
+    const { getByRole } = await renderHome(repo);
+    const button = await waitFor(() =>
+      getByRole('button', { name: 'Quiet reminders for 1 hour' }),
+    );
+    const before = Date.now();
+    fireEvent.press(button);
+    await waitFor(async () => {
+      const settings = await repo.getSettings();
+      expect(settings.eyeQuietUntil).not.toBe('');
+      expect(settings.waterQuietUntil).not.toBe('');
+      expect(Date.parse(settings.eyeQuietUntil)).toBeGreaterThan(before);
+      expect(Date.parse(settings.waterQuietUntil)).toBeGreaterThan(before);
+    });
   });
 });

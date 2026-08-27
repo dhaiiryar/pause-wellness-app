@@ -10,7 +10,11 @@ import {
   SettingsRow,
   Text,
 } from '../components';
+import { openAppNotificationSettings } from '../permissions';
+import { statusLine } from '../scheduling/delivery';
+import { QUIET_MS } from '../scheduling/mute';
 import { useDailyLog } from '../state/DailyLogProvider';
+import { useLoop } from '../state/useLoop';
 import { useSettings } from '../state/SettingsProvider';
 import { useTheme } from '../theme';
 import { RouteNames, type RootStackParamList } from '../navigation/routes';
@@ -25,11 +29,11 @@ export function HomeScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation<Navigation>();
   const { settings, updateSettings } = useSettings();
+  const loop = useLoop();
   const {
     eyeBreaks,
     waterGlasses,
     goal,
-    hydrated,
     loading,
     logGlass,
     undoGlass,
@@ -69,6 +73,9 @@ export function HomeScreen() {
             >
               {eyeBreaks}
             </Text>
+            <Text variant="body" tone="muted">
+              {statusLine('eye', loop.eye)}
+            </Text>
           </Card>
           <Card style={{ flex: 1 }}>
             <Text variant="caption" tone="muted">
@@ -80,18 +87,11 @@ export function HomeScreen() {
                 {` / ${goal}`}
               </Text>
             </Text>
+            <Text variant="body" tone="muted">
+              {statusLine('water', loop.water)}
+            </Text>
           </Card>
         </View>
-
-        {hydrated && (
-          <Text
-            variant="body"
-            tone="primary"
-            style={{ textAlign: 'center', marginTop: theme.spacing.md }}
-          >
-            {"You're hydrated — well done."}
-          </Text>
-        )}
 
         <View
           style={{
@@ -133,6 +133,29 @@ export function HomeScreen() {
             accessibilityLabel="Open water log"
             accessibilityHint="Opens the full water log"
           />
+          <Button
+            label="Quiet for 1 hour"
+            variant="ghost"
+            onPress={() => {
+              void (async () => {
+                await loop.quietFor('eye', QUIET_MS);
+                await loop.quietFor('water', QUIET_MS);
+              })();
+            }}
+            accessibilityLabel="Quiet reminders for 1 hour"
+            accessibilityHint="Silences eye and water reminders for one hour"
+          />
+          {loop.permission === 'denied' ? (
+            <Button
+              label="Enable notifications"
+              variant="ghost"
+              onPress={() => {
+                void openAppNotificationSettings();
+              }}
+              accessibilityLabel="Enable notifications"
+              accessibilityHint="Opens system settings so you can enable notifications"
+            />
+          ) : null}
 
           <SettingsRow
             label="Pause eye reminders"
