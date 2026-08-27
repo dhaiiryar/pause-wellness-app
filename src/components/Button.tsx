@@ -12,14 +12,14 @@ type ButtonProps = {
   accessibilityLabel?: string;
   /** Spoken after the label/state, describing what the button does. */
   accessibilityHint?: string;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'ghost';
   style?: ViewStyle;
   children?: ReactNode;
 };
 
 /**
  * Calm, rounded, on-theme button. `primary` uses sage; `secondary` uses the
- * sand surface with a border. Press feedback is a gentle opacity dip.
+ * sand surface with a border; `ghost` is text-only. Press scales to 0.97.
  */
 export function Button({
   label,
@@ -32,6 +32,7 @@ export function Button({
 }: ButtonProps) {
   const { theme } = useTheme();
   const isPrimary = variant === 'primary';
+  const isGhost = variant === 'ghost';
 
   return (
     <Pressable
@@ -41,14 +42,19 @@ export function Button({
       accessibilityHint={accessibilityHint}
       style={({ pressed }) => [
         {
-          backgroundColor: isPrimary ? theme.colors.primary : theme.colors.surface,
-          borderColor: isPrimary ? 'transparent' : theme.colors.border,
-          borderWidth: isPrimary ? 0 : 1,
+          backgroundColor: isGhost
+            ? 'transparent'
+            : isPrimary
+              ? theme.colors.primary
+              : theme.colors.surface,
+          borderColor: isPrimary || isGhost ? 'transparent' : theme.colors.border,
+          borderWidth: isPrimary || isGhost ? 0 : 1,
           borderRadius: theme.radii.lg,
-          paddingVertical: theme.spacing.lg,
+          paddingVertical: isGhost ? theme.spacing.md : theme.spacing.lg,
           paddingHorizontal: theme.spacing.xl,
           alignItems: 'center',
-          opacity: pressed ? 0.7 : 1,
+          opacity: pressed ? 0.92 : 1,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
         },
         style,
       ]}
@@ -56,9 +62,13 @@ export function Button({
       {children ?? (
         <Text
           style={{
-            color: isPrimary ? theme.colors.textOnPrimary : theme.colors.text,
+            color: isGhost
+              ? theme.colors.primaryText
+              : isPrimary
+                ? theme.colors.textOnPrimary
+                : theme.colors.text,
             fontSize: theme.typography.body,
-            fontFamily: theme.typography.familyRegular,
+            fontFamily: theme.typography.familyMedium,
           }}
         >
           {label}

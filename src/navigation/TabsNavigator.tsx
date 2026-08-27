@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { type ComponentProps, type ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { PauseMark } from '../components';
 import { useTheme } from '../theme';
 import {
   EyeRestScreen,
@@ -28,12 +29,7 @@ function withA11yHidden(glyph: ReactNode) {
 
 /** Pause bars — brand-aligned home mark (two vertical rounded rects). */
 function PauseGlyph({ color }: { color: string }) {
-  return withA11yHidden(
-    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', height: 22 }}>
-      <View style={{ width: 5, height: 18, borderRadius: 2, backgroundColor: color }} />
-      <View style={{ width: 5, height: 18, borderRadius: 2, backgroundColor: color }} />
-    </View>,
-  );
+  return <PauseMark color={color} size="sm" />;
 }
 
 /** Mini bar chart — three vertical bars of different heights. */

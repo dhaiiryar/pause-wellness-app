@@ -17,7 +17,6 @@ export function StatsScreen() {
   return (
     <Screen>
       <View style={{ flex: 1, gap: theme.spacing.xxxl }}>
-        {/* ---- today's counts ---- */}
         <View style={{ gap: theme.spacing.sm }}>
           <Text variant="heading">Today</Text>
           <Card>
@@ -33,7 +32,6 @@ export function StatsScreen() {
                   {eyeBreaks}
                 </Text>
               </View>
-
               <View style={{ flex: 1, gap: theme.spacing.xs }}>
                 <Text variant="caption" tone="muted">
                   Water glasses
@@ -49,7 +47,6 @@ export function StatsScreen() {
           </Card>
         </View>
 
-        {/* ---- 7-day dot grids ---- */}
         <View style={{ gap: theme.spacing.sm }}>
           <Text variant="heading">This week</Text>
           <View style={{ gap: theme.spacing.lg }}>
@@ -57,7 +54,6 @@ export function StatsScreen() {
               <Text variant="title">Eye breaks</Text>
               <DotGrid feature="eye" today={date} recent={recent} />
             </Card>
-
             <Card>
               <Text variant="title">Water glasses</Text>
               <DotGrid feature="water" today={date} recent={recent} />
