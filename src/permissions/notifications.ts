@@ -2,13 +2,20 @@ import { Linking } from "react-native";
 import * as Notifications from "expo-notifications";
 
 import {
+  EYE_CATEGORY_IDENTIFIER,
   LOG_GLASS_ACTION_IDENTIFIER,
+  SNOOZE_EYE_ACTION_IDENTIFIER,
   WATER_CATEGORY_IDENTIFIER,
 } from "../notifications/categoryIds";
 
 export type PermissionResult = "granted" | "denied" | "unknown";
 
-export { WATER_CATEGORY_IDENTIFIER, LOG_GLASS_ACTION_IDENTIFIER };
+export {
+  WATER_CATEGORY_IDENTIFIER,
+  LOG_GLASS_ACTION_IDENTIFIER,
+  EYE_CATEGORY_IDENTIFIER,
+  SNOOZE_EYE_ACTION_IDENTIFIER,
+};
 
 /**
  * Short, low-intensity vibration pattern: wait 0ms, vibrate 80ms, pause 40ms,
@@ -68,9 +75,9 @@ export async function ensureNotificationChannels(): Promise<void> {
 /**
  * Register interactive notification categories (action buttons).
  *
- * Water only: "Log glass" opens the app (`opensAppToForeground: true`) so the
- * JS response listener can persist without `expo-task-manager`. Eye has no
- * complete-from-shade action (PRD 20s rule).
+ * Water: "Log glass". Eye: "Snooze". Both open the app so the JS listener
+ * can persist without expo-task-manager. Eye has no complete-from-shade
+ * action (PRD 20s rule).
  *
  * Safe to call repeatedly; failures are swallowed (iOS/headless/unavailable).
  */
@@ -84,6 +91,18 @@ export async function ensureNotificationCategories(): Promise<void> {
           buttonTitle: "Log glass",
           options: {
             // Default true; explicit so killed-state listeners still fire.
+            opensAppToForeground: true,
+          },
+        },
+      ],
+    );
+    await Notifications.setNotificationCategoryAsync(
+      EYE_CATEGORY_IDENTIFIER,
+      [
+        {
+          identifier: SNOOZE_EYE_ACTION_IDENTIFIER,
+          buttonTitle: "Snooze",
+          options: {
             opensAppToForeground: true,
           },
         },

@@ -2,7 +2,9 @@ import * as Notifications from 'expo-notifications';
 import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
 import type { Repository } from '../data/Repository';
+import { EYE_CATEGORY_IDENTIFIER } from '../notifications/categoryIds';
 import { computeEyeBreakTimes } from './eyeReminders';
+import { fireFloor, resolveFeatureMute, shouldCancelAll } from './mute';
 
 export type EyeSchedulerDeps = {
   repo: Repository;
@@ -14,10 +16,12 @@ export type EyeSchedulerDeps = {
  * Cancel all currently scheduled eye notifications and re-queue them for
  * today + the next 2 days using inexact `Date` triggers.
  *
- * - Reads settings from the repository; if `eyeEnabled` is false or `eyePaused`
- *   is true, cancels all eye notifications and returns immediately.
- * - Each notification carries `data: { feature: 'eye' }` so the response
- *   listener can route the tap to the EyeRest modal.
+ * - Reads settings from the repository; if `eyeEnabled` is false or mute is
+ *   sticky-paused, cancels all eye notifications and returns immediately.
+ *   Timed quiet is a floor on fire times, not a cancel-all.
+ * - Each notification carries `data: { feature: 'eye' }` and
+ *   `categoryIdentifier: eye_actions` so the response listener can route
+ *   the tap to the EyeRest modal and show Snooze.
  * - The `channelId` is `'eye'` (chime + vibration) when
  *   `settings.soundEnabled === true`; `'eye_muted'` (vibration only)
  *   otherwise.
@@ -30,19 +34,17 @@ export async function rescheduleEyeReminders(
 ): Promise<void> {
   const { repo, notifications, now } = deps;
   const settings = await repo.getSettings();
+  const clock = now?.() ?? new Date();
+  const mute = resolveFeatureMute(settings, 'eye', clock);
 
-  // ---- feature disabled or paused → cancel everything ------------------
-
-  if (!settings.eyeEnabled || settings.eyePaused) {
+  if (!settings.eyeEnabled || shouldCancelAll(mute)) {
     await cancelAllEye(repo, notifications);
     return;
   }
 
-  // ---- cancel + re-queue -----------------------------------------------
-
   await cancelAllEye(repo, notifications);
 
-  const currentMs = (now?.() ?? new Date()).getTime();
+  const floor = fireFloor(mute, clock);
   const activeHours = {
     start: settings.activeHoursStart,
     end: settings.activeHoursEnd,
@@ -50,14 +52,10 @@ export async function rescheduleEyeReminders(
   const channelId = settings.soundEnabled ? 'eye' : 'eye_muted';
 
   for (let offset = 0; offset <= 2; offset++) {
-    const anchor = new Date(currentMs);
+    const anchor = new Date(clock.getTime());
     anchor.setDate(anchor.getDate() + offset);
 
-    const times = computeEyeBreakTimes(
-      activeHours,
-      anchor,
-      offset === 0 ? new Date(currentMs) : new Date(0), // "now" only matters for today
-    );
+    const times = computeEyeBreakTimes(activeHours, anchor, floor);
 
     for (const t of times) {
       try {
@@ -66,6 +64,7 @@ export async function rescheduleEyeReminders(
             title: 'Pause · Eye',
             body: 'Time to rest your eyes',
             data: { feature: 'eye' },
+            categoryIdentifier: EYE_CATEGORY_IDENTIFIER,
           },
           trigger: {
             type: SchedulableTriggerInputTypes.DATE,

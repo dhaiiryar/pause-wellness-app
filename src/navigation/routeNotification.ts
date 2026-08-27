@@ -1,10 +1,15 @@
 import {
   DEFAULT_ACTION_IDENTIFIER,
   LOG_GLASS_ACTION_IDENTIFIER,
+  SNOOZE_EYE_ACTION_IDENTIFIER,
 } from '../notifications/categoryIds';
 import { RouteNames, type RootStackParamList } from './routes';
 
-export { DEFAULT_ACTION_IDENTIFIER, LOG_GLASS_ACTION_IDENTIFIER };
+export {
+  DEFAULT_ACTION_IDENTIFIER,
+  LOG_GLASS_ACTION_IDENTIFIER,
+  SNOOZE_EYE_ACTION_IDENTIFIER,
+};
 
 /**
  * Minimal shape of a notification response relevant to routing / actions.
@@ -17,6 +22,7 @@ export type NotificationResponseShape = {
   actionIdentifier?: string;
   notification: {
     request: {
+      identifier?: string;
       content: {
         data?: Record<string, unknown>;
       };
@@ -31,6 +37,8 @@ export type HandleNotificationDeps = {
   ) => void;
   /** Injected so tests can mock; production wires `logGlassViaRepo`. */
   logGlass: () => Promise<void>;
+  /** Injected so tests can mock; production wires `quietViaRepo` for eye. */
+  snoozeEye: () => Promise<void>;
 };
 
 /**
@@ -62,8 +70,10 @@ export function routeNotificationResponse(
  * Handle a notification interaction: action buttons or default body tap.
  *
  * - `LOG_GLASS` + water → log via deps (no navigation).
+ * - `SNOOZE_EYE` + eye → quiet via deps (no navigation, no complete-break).
  * - Default (or missing) action → existing modal routing.
  * - LOG_GLASS on non-water features is ignored (eye must not complete from shade).
+ * - SNOOZE_EYE on non-eye features is ignored.
  */
 export async function handleNotificationResponse(
   response: NotificationResponseShape,
@@ -76,6 +86,12 @@ export async function handleNotificationResponse(
   if (action === LOG_GLASS_ACTION_IDENTIFIER) {
     if (feature === 'water') {
       await deps.logGlass();
+    }
+    return;
+  }
+  if (action === SNOOZE_EYE_ACTION_IDENTIFIER) {
+    if (feature === 'eye') {
+      await deps.snoozeEye();
     }
     return;
   }

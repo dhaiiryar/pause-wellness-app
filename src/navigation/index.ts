@@ -7,6 +7,7 @@ export {
   handleNotificationResponse,
   DEFAULT_ACTION_IDENTIFIER,
   LOG_GLASS_ACTION_IDENTIFIER,
+  SNOOZE_EYE_ACTION_IDENTIFIER,
 } from './routeNotification';
 export type {
   NotificationResponseShape,

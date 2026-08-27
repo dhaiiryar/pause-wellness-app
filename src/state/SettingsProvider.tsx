@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { applySettingsPatch } from '../data/applySettingsPatch';
 import { useRepository } from '../data';
 import { DEFAULT_SETTINGS, type Settings } from '../types/settings';
 
@@ -14,6 +15,7 @@ export type SettingsValue = {
   settings: Settings;
   loading: boolean;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
+  reload: () => Promise<void>;
 };
 
 const SettingsContext = createContext<SettingsValue | undefined>(undefined);
@@ -40,15 +42,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSettings = useCallback(
     async (patch: Partial<Settings>) => {
-      const next = { ...settings, ...patch };
-      await repo.setSettings(next);
+      const next = await applySettingsPatch(repo, patch);
       setSettings(next);
     },
-    [repo, settings],
+    [repo],
   );
 
+  const reload = useCallback(async () => {
+    const next = await repo.getSettings();
+    setSettings(next);
+  }, [repo]);
+
   return (
-    <SettingsContext.Provider value={{ settings, loading, updateSettings }}>
+    <SettingsContext.Provider
+      value={{ settings, loading, updateSettings, reload }}
+    >
       {children}
     </SettingsContext.Provider>
   );
@@ -67,4 +75,8 @@ export function useSettings(): SettingsValue {
     );
   }
   return ctx;
+}
+
+export function useOptionalSettings(): SettingsValue | undefined {
+  return useContext(SettingsContext);
 }

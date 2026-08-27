@@ -69,6 +69,10 @@ jest.mock('expo-notifications', () => ({
   addNotificationReceivedListener: jest.fn(() => ({
     remove: jest.fn(),
   })),
+  setNotificationHandler: jest.fn(),
+  getLastNotificationResponse: jest.fn(() => null),
+  clearLastNotificationResponse: jest.fn(),
+  setNotificationCategoryAsync: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock('react-native-safe-area-context', () => {

@@ -24,6 +24,8 @@ type SettingsRow = {
   waterEnabled: number;
   waterPaused: number;
   onboardingComplete: number;
+  eyeQuietUntil: string;
+  waterQuietUntil: string;
 };
 
 /**
@@ -75,6 +77,8 @@ export class SqliteRepository implements Repository {
       waterEnabled: !!row.waterEnabled,
       waterPaused: !!row.waterPaused,
       onboardingComplete: !!row.onboardingComplete,
+      eyeQuietUntil: row.eyeQuietUntil ?? '',
+      waterQuietUntil: row.waterQuietUntil ?? '',
     };
   }
 
@@ -83,8 +87,8 @@ export class SqliteRepository implements Repository {
       `INSERT OR REPLACE INTO settings
         (id, activeHoursStart, activeHoursEnd, waterGoalGlasses, soundEnabled,
          themeMode, eyeEnabled, eyePaused, waterEnabled, waterPaused,
-         onboardingComplete)
-       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         onboardingComplete, eyeQuietUntil, waterQuietUntil)
+       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       settings.activeHoursStart,
       settings.activeHoursEnd,
       settings.waterGoalGlasses,
@@ -94,7 +98,9 @@ export class SqliteRepository implements Repository {
       settings.eyePaused ? 1 : 0,
       settings.waterEnabled ? 1 : 0,
       settings.waterPaused ? 1 : 0,
-      settings.onboardingComplete ? 1 : 0
+      settings.onboardingComplete ? 1 : 0,
+      settings.eyeQuietUntil,
+      settings.waterQuietUntil
     );
   }
 

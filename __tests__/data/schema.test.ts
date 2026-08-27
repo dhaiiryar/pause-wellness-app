@@ -67,10 +67,12 @@ describe('migrate()', () => {
   it('creates the settings table with pause columns on a fresh DB', async () => {
     const db = fakeDb(0);
     await expect(migrate(db as never)).resolves.not.toThrow();
-    expect(db.version).toBe(5);
+    expect(db.version).toBe(6);
     expect(db.columns.settings).toBeDefined();
     expect(db.columns.settings!.has('eyePaused')).toBe(true);
     expect(db.columns.settings!.has('waterPaused')).toBe(true);
+    expect(db.columns.settings!.has('eyeQuietUntil')).toBe(true);
+    expect(db.columns.settings!.has('waterQuietUntil')).toBe(true);
   });
 
   it('upgrades an existing v3 DB by adding eyePaused then waterPaused via ALTER', async () => {
@@ -89,7 +91,9 @@ describe('migrate()', () => {
     await expect(migrate(db as never)).resolves.not.toThrow();
     expect(db.columns.settings!.has('eyePaused')).toBe(true);
     expect(db.columns.settings!.has('waterPaused')).toBe(true);
-    expect(db.version).toBe(5);
+    expect(db.columns.settings!.has('eyeQuietUntil')).toBe(true);
+    expect(db.columns.settings!.has('waterQuietUntil')).toBe(true);
+    expect(db.version).toBe(6);
   });
 
   it('upgrades an existing v4 DB by adding waterPaused via ALTER', async () => {
@@ -108,6 +112,29 @@ describe('migrate()', () => {
     ]);
     await expect(migrate(db as never)).resolves.not.toThrow();
     expect(db.columns.settings!.has('waterPaused')).toBe(true);
-    expect(db.version).toBe(5);
+    expect(db.columns.settings!.has('eyeQuietUntil')).toBe(true);
+    expect(db.columns.settings!.has('waterQuietUntil')).toBe(true);
+    expect(db.version).toBe(6);
+  });
+
+  it('upgrades an existing v5 DB by adding quiet-until columns via ALTER', async () => {
+    const db = fakeDb(5);
+    (db.columns as Record<string, Set<string>>).settings = new Set([
+      'id',
+      'activeHoursStart',
+      'activeHoursEnd',
+      'waterGoalGlasses',
+      'soundEnabled',
+      'themeMode',
+      'eyeEnabled',
+      'eyePaused',
+      'waterEnabled',
+      'waterPaused',
+      'onboardingComplete',
+    ]);
+    await expect(migrate(db as never)).resolves.not.toThrow();
+    expect(db.columns.settings!.has('eyeQuietUntil')).toBe(true);
+    expect(db.columns.settings!.has('waterQuietUntil')).toBe(true);
+    expect(db.version).toBe(6);
   });
 });

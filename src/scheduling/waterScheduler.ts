@@ -6,6 +6,7 @@ import { WATER_CATEGORY_IDENTIFIER } from '../notifications/categoryIds';
 import { shouldCancelRemainingWater } from '../state/dailyLogReducer';
 import { todayKey } from '../types/log';
 import { computeWaterReminderTimes } from './waterReminders';
+import { fireFloor, resolveFeatureMute, shouldCancelAll } from './mute';
 
 export type WaterSchedulerDeps = {
   repo: Repository;
@@ -17,9 +18,9 @@ export type WaterSchedulerDeps = {
  * Cancel all currently scheduled water notifications and re-queue them for
  * today + the next 2 days using inexact `Date` triggers.
  *
- * - Reads settings from the repository; if `waterEnabled` is false or
- *   `waterPaused` is true, cancels all water notifications and returns
- *   immediately.
+ * - Reads settings from the repository; if `waterEnabled` is false or mute
+ *   is sticky-paused, cancels all water notifications and returns
+ *   immediately. Timed quiet is a floor on fire times, not a cancel-all.
  * - For today, if the daily log already shows glasses ≥ goal (hydrated),
  *   today's batch is skipped — remaining today's reminders won't re-fire.
  * - Each notification carries `data: { feature: 'water' }` so the
@@ -37,19 +38,17 @@ export async function rescheduleWaterReminders(
 ): Promise<void> {
   const { repo, notifications, now } = deps;
   const settings = await repo.getSettings();
+  const clock = now?.() ?? new Date();
+  const mute = resolveFeatureMute(settings, 'water', clock);
 
-  // ---- feature disabled or paused → cancel everything ------------------
-
-  if (!settings.waterEnabled || settings.waterPaused) {
+  if (!settings.waterEnabled || shouldCancelAll(mute)) {
     await cancelAllWater(repo, notifications);
     return;
   }
 
-  // ---- cancel + re-queue -----------------------------------------------
-
   await cancelAllWater(repo, notifications);
 
-  const currentMs = (now?.() ?? new Date()).getTime();
+  const floor = fireFloor(mute, clock);
   const goal = settings.waterGoalGlasses;
   const activeHours = {
     start: settings.activeHoursStart,
@@ -58,7 +57,7 @@ export async function rescheduleWaterReminders(
   const channelId = settings.soundEnabled ? 'water' : 'water_muted';
 
   for (let offset = 0; offset <= 2; offset++) {
-    const anchor = new Date(currentMs);
+    const anchor = new Date(clock.getTime());
     anchor.setDate(anchor.getDate() + offset);
 
     // Goal already met today? Skip today's batch.
@@ -69,12 +68,7 @@ export async function rescheduleWaterReminders(
       }
     }
 
-    const times = computeWaterReminderTimes(
-      activeHours,
-      goal,
-      anchor,
-      offset === 0 ? new Date(currentMs) : new Date(0), // "now" only matters for today
-    );
+    const times = computeWaterReminderTimes(activeHours, goal, anchor, floor);
 
     for (const t of times) {
       try {

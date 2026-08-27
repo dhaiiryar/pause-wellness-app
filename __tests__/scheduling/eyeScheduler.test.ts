@@ -3,6 +3,7 @@ import type * as Notifications from 'expo-notifications';
 
 import { rescheduleEyeReminders } from '../../src/scheduling/eyeScheduler';
 import { InMemoryRepository } from '../../src/data';
+import { EYE_CATEGORY_IDENTIFIER } from '../../src/notifications/categoryIds';
 
 type NotificationsApi = typeof Notifications;
 
@@ -62,6 +63,7 @@ describe('rescheduleEyeReminders', () => {
       .calls[0][0];
     expect(firstCall.trigger.channelId).toBe('eye');
     expect(firstCall.content.data).toEqual({ feature: 'eye' });
+    expect(firstCall.content.categoryIdentifier).toBe(EYE_CATEGORY_IDENTIFIER);
   });
 
   it('uses the muted channel when sounds are disabled', async () => {
@@ -149,5 +151,48 @@ describe('rescheduleEyeReminders', () => {
 
     expect(notifications.scheduleNotificationAsync).toHaveBeenCalled();
     expect((await repo.getSettings()).eyePaused).toBe(false);
+  });
+
+  it('floors today at quiet until and still schedules later fires', async () => {
+    const until = dt(2026, 6, 23, 9, 0);
+    const repo = new InMemoryRepository({
+      eyeEnabled: true,
+      eyePaused: false,
+      eyeQuietUntil: until.toISOString(),
+      activeHoursStart: '08:00',
+      activeHoursEnd: '10:00',
+      soundEnabled: true,
+    });
+    const notifications = makeNotifications();
+    const now = () => dt(2026, 6, 23, 8, 0);
+
+    await rescheduleEyeReminders({ repo, notifications, now });
+
+    const tracked = await repo.getScheduledIds('eye');
+    const times = tracked.map((row) => new Date(row.triggerTime).getTime());
+    expect(times).not.toContain(dt(2026, 6, 23, 8, 0).getTime());
+    expect(times).not.toContain(dt(2026, 6, 23, 8, 20).getTime());
+    expect(times).not.toContain(dt(2026, 6, 23, 8, 40).getTime());
+    expect(times).not.toContain(dt(2026, 6, 23, 9, 0).getTime());
+    expect(times).toContain(dt(2026, 6, 23, 9, 20).getTime());
+    expect(times).toContain(dt(2026, 6, 23, 9, 40).getTime());
+    expect(times).toContain(dt(2026, 6, 24, 8, 0).getTime());
+    expect(notifications.cancelScheduledNotificationAsync).not.toHaveBeenCalled();
+  });
+
+  it('schedules nothing when sticky-paused even if a quiet until is set', async () => {
+    const repo = new InMemoryRepository({
+      eyeEnabled: true,
+      eyePaused: true,
+      eyeQuietUntil: dt(2026, 6, 23, 9, 0).toISOString(),
+    });
+    await repo.addScheduledId('eye', '2026-06-23T08:00:00.000Z', 'old-eye');
+    const notifications = makeNotifications();
+    const now = () => dt(2026, 6, 23, 8, 0);
+
+    await rescheduleEyeReminders({ repo, notifications, now });
+
+    expect(notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+    expect(await repo.getScheduledIds('eye')).toEqual([]);
   });
 });

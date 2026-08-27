@@ -6,8 +6,8 @@ import { useRepository } from '../data';
 import { todayKey } from '../types/log';
 import type { DailyState } from './dailyLogReducer';
 import { dailyReducer, initialStateFromLog, rollover } from './dailyLogReducer';
-import { useScheduling } from './SchedulingProvider';
-import { useSettings } from './SettingsProvider';
+import { useOptionalScheduling } from './SchedulingProvider';
+import { useOptionalSettings } from './SettingsProvider';
 
 /**
  * Value exposed by {@link useDailyLog}.
@@ -41,27 +41,8 @@ export function DailyLogProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const initChecked = useRef(false);
 
-  // ---- scheduling (soft dep — may be absent in tests) -----------
-
-  let rescheduleWater: (() => Promise<void>) | undefined;
-  try {
-    rescheduleWater = useScheduling().rescheduleWater;
-  } catch {
-    // No SchedulingProvider above us → no-op (test env).
-  }
-
-  // ---- settings (soft dep — may be absent in tests) -----------
-  //
-  // Subscribe to the live goal so updates from SettingsScreen propagate to
-  // the water-log UI immediately. Previously `loadToday` snapshot the goal
-  // at mount and never refreshed it, so a goal change required an app
-  // restart to show on the WaterLogScreen.
-  let liveGoal: number | undefined;
-  try {
-    liveGoal = useSettings().settings.waterGoalGlasses;
-  } catch {
-    // No SettingsProvider above us → keep using the boot-time goal.
-  }
+  const rescheduleWater = useOptionalScheduling()?.rescheduleWater;
+  const liveGoal = useOptionalSettings()?.settings.waterGoalGlasses;
 
   // ---- helpers -------------------------------------------------
 
@@ -132,20 +113,9 @@ export function DailyLogProvider({ children }: { children: ReactNode }) {
     })();
   }, [loadToday, performRollover]);
 
-  // ---- live goal sync (Settings → DailyLog) ----------------------------
-
-  // Push a settings goal change into the daily state so the water-log UI
-  // reflects it immediately. Skipped on the first run (liveGoal is undefined
-  // when there's no SettingsProvider, or before init); otherwise dispatches
-  // once the boot-time goal has been laid down and whenever the goal changes.
-  const bootGoalRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (liveGoal === undefined || !state) return;
-    if (bootGoalRef.current === null) bootGoalRef.current = state.goal;
-    if (liveGoal !== state.goal) {
-      setState(dailyReducer(state, { type: 'UpdateSettings', goal: liveGoal }));
-    }
-  }, [liveGoal, state]);
+  if (state && liveGoal !== undefined && liveGoal !== state.goal) {
+    setState(dailyReducer(state, { type: 'UpdateSettings', goal: liveGoal }));
+  }
 
   // ---- date-change + external write sync on foreground -----------
   //
@@ -194,6 +164,7 @@ export function DailyLogProvider({ children }: { children: ReactNode }) {
 
   const undoGlass = useCallback(async () => {
     if (!state) return;
+    const wasHydrated = state.hydrated;
     const next = dailyReducer(state, { type: 'UndoGlass' });
     setState(next);
     await repo.upsertLog({
@@ -201,7 +172,14 @@ export function DailyLogProvider({ children }: { children: ReactNode }) {
       eyeBreaks: next.eyeBreaks,
       waterGlasses: next.waterGlasses,
     });
-  }, [repo, state]);
+    if (wasHydrated && !next.hydrated && rescheduleWater) {
+      try {
+        await rescheduleWater();
+      } catch {
+        // Notification reschedule is best-effort; never break the log.
+      }
+    }
+  }, [repo, state, rescheduleWater]);
 
   const completeBreak = useCallback(async () => {
     if (!state) return;

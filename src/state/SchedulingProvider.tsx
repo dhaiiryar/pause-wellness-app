@@ -4,18 +4,24 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useState,
   type ReactNode,
 } from 'react';
 import * as Notifications from 'expo-notifications';
 
 import { useRepository } from '../data';
 import { ensureNotificationChannels } from '../permissions';
-import { rescheduleEyeReminders, rescheduleWaterReminders } from '../scheduling';
+import {
+  earliestTrigger,
+  rescheduleEyeReminders,
+  rescheduleWaterReminders,
+} from '../scheduling';
 import { useSettings } from './SettingsProvider';
 
 export type SchedulingValue = {
   /** Force a full water reschedule (e.g. after goal hit). */
   rescheduleWater: () => Promise<void>;
+  nextFire: { eye: Date | null; water: Date | null };
 };
 
 const SchedulingContext = createContext<SchedulingValue | undefined>(undefined);
@@ -36,23 +42,44 @@ const SchedulingContext = createContext<SchedulingValue | undefined>(undefined);
 export function SchedulingProvider({ children }: { children: ReactNode }) {
   const repo = useRepository();
   const { settings } = useSettings();
+  const [nextFire, setNextFire] = useState<{
+    eye: Date | null;
+    water: Date | null;
+  }>({ eye: null, water: null });
+
+  const scheduleAll = useCallback(async () => {
+    await Promise.allSettled([
+      rescheduleWaterReminders({
+        repo,
+        notifications: Notifications,
+      }),
+      rescheduleEyeReminders({
+        repo,
+        notifications: Notifications,
+      }),
+    ]);
+  }, [repo]);
+
+  const loadNextFire = useCallback(async () => {
+    const clock = new Date();
+    const [eyeRows, waterRows] = await Promise.all([
+      repo.getScheduledIds('eye'),
+      repo.getScheduledIds('water'),
+    ]);
+    return {
+      eye: earliestTrigger(eyeRows, clock),
+      water: earliestTrigger(waterRows, clock),
+    };
+  }, [repo]);
 
   const runReschedule = useCallback(async () => {
     try {
-      await Promise.allSettled([
-        rescheduleWaterReminders({
-          repo,
-          notifications: Notifications,
-        }),
-        rescheduleEyeReminders({
-          repo,
-          notifications: Notifications,
-        }),
-      ]);
+      await scheduleAll();
+      setNextFire(await loadNextFire());
     } catch {
       // Swallow — a scheduling failure shouldn't crash the tree.
     }
-  }, [repo]);
+  }, [scheduleAll, loadNextFire]);
 
   // ---- mount: create channels (idempotent) -----------------------------
 
@@ -77,6 +104,8 @@ export function SchedulingProvider({ children }: { children: ReactNode }) {
         settings.waterPaused,
         settings.eyeEnabled,
         settings.eyePaused,
+        settings.eyeQuietUntil,
+        settings.waterQuietUntil,
         settings.activeHoursStart,
         settings.activeHoursEnd,
         settings.waterGoalGlasses,
@@ -86,11 +115,22 @@ export function SchedulingProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    runReschedule();
-  }, [runReschedule, schedulingKey]);
+    let cancelled = false;
+    void scheduleAll()
+      .then(() => loadNextFire())
+      .then((next) => {
+        if (!cancelled) setNextFire(next);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [scheduleAll, loadNextFire, schedulingKey]);
 
   return (
-    <SchedulingContext.Provider value={{ rescheduleWater: runReschedule }}>
+    <SchedulingContext.Provider
+      value={{ rescheduleWater: runReschedule, nextFire }}
+    >
       {children}
     </SchedulingContext.Provider>
   );
@@ -109,4 +149,8 @@ export function useScheduling(): SchedulingValue {
     );
   }
   return ctx;
+}
+
+export function useOptionalScheduling(): SchedulingValue | undefined {
+  return useContext(SchedulingContext);
 }

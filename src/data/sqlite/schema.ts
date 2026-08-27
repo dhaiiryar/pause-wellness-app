@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-export const DATABASE_VERSION = 5;
+export const DATABASE_VERSION = 6;
 
 /**
  * Static DDL for the `settings` singleton table.
@@ -68,6 +68,7 @@ CREATE INDEX IF NOT EXISTS idx_sched_feature ON scheduled_notifications(feature)
  * v2 → v3: create the `scheduled_notifications` table.
  * v3 → v4: add `eyePaused` column to `settings`.
  * v4 → v5: add `waterPaused` column to `settings`.
+ * v5 → v6: add `eyeQuietUntil` and `waterQuietUntil` columns to `settings`.
  */
 export async function migrate(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>(
@@ -94,6 +95,14 @@ export async function migrate(db: SQLiteDatabase): Promise<void> {
   if (user_version < 5) {
     await db.execAsync(
       `ALTER TABLE settings ADD COLUMN waterPaused INTEGER NOT NULL DEFAULT 0;`
+    );
+  }
+  if (user_version < 6) {
+    await db.execAsync(
+      `ALTER TABLE settings ADD COLUMN eyeQuietUntil TEXT NOT NULL DEFAULT '';`
+    );
+    await db.execAsync(
+      `ALTER TABLE settings ADD COLUMN waterQuietUntil TEXT NOT NULL DEFAULT '';`
     );
   }
 
