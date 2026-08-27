@@ -12,9 +12,8 @@ import DateTimePicker, {
 
 import { LoadingScreen, Screen, SettingsRow, Text } from '../components';
 import {
-  getNotificationPermission,
   openAppNotificationSettings,
-  type PermissionResult,
+  useNotificationPermission,
 } from '../permissions';
 import { useSettings } from '../state/SettingsProvider';
 import { useTheme } from '../theme';
@@ -61,11 +60,7 @@ export function SettingsScreen() {
   const [startText, setStartText] = useState(settings.activeHoursStart);
   const [endText, setEndText] = useState(settings.activeHoursEnd);
   const [picking, setPicking] = useState<ActiveHoursField | null>(null);
-
-  // Live OS permission status — never stored in app settings.
-  const [permission, setPermission] = useState<PermissionResult | 'loading'>(
-    'loading',
-  );
+  const permission = useNotificationPermission();
 
   // Sync local state when the async settings load completes.
   useEffect(() => {
@@ -75,17 +70,6 @@ export function SettingsScreen() {
       setEndText(settings.activeHoursEnd);
     }
   }, [loading, settings]);
-
-  // Read notification permission once on mount (live from OS).
-  useEffect(() => {
-    let cancelled = false;
-    getNotificationPermission().then((result) => {
-      if (!cancelled) setPermission(result);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   if (loading) return <LoadingScreen />;
 

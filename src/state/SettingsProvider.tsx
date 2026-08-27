@@ -76,3 +76,7 @@ export function useSettings(): SettingsValue {
   }
   return ctx;
 }
+
+export function useOptionalSettings(): SettingsValue | undefined {
+  return useContext(SettingsContext);
+}

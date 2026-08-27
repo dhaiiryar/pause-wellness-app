@@ -10,3 +10,4 @@ export {
   SNOOZE_EYE_ACTION_IDENTIFIER,
   type PermissionResult,
 } from './notifications';
+export { useNotificationPermission } from './useNotificationPermission';

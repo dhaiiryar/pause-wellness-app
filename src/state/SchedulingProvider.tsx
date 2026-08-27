@@ -150,3 +150,7 @@ export function useScheduling(): SchedulingValue {
   }
   return ctx;
 }
+
+export function useOptionalScheduling(): SchedulingValue | undefined {
+  return useContext(SchedulingContext);
+}
