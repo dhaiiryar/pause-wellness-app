@@ -13,6 +13,7 @@ import {
   useFonts,
   Inter_300Light,
   Inter_400Regular,
+  Inter_500Medium,
 } from '@expo-google-fonts/inter';
 
 import {
@@ -109,6 +110,7 @@ export default function App() {
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Light': Inter_300Light,
     'Inter-Regular': Inter_400Regular,
+    'Inter-Medium': Inter_500Medium,
   });
   const [repo, setRepo] = useState<Repository | null>(null);
   const [initialRoute, setInitialRoute] =

@@ -46,7 +46,9 @@ export function Text({
   const fontFamily =
     variant === 'display' || variant === 'heading'
       ? theme.typography.familyLight
-      : theme.typography.familyRegular;
+      : variant === 'title'
+        ? theme.typography.familyMedium
+        : theme.typography.familyRegular;
 
   const color =
     tone === 'muted'

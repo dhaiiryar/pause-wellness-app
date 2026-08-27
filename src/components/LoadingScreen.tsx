@@ -1,5 +1,7 @@
 import { View } from 'react-native';
 
+import { useTheme } from '../theme';
+import { PauseMark } from './PauseMark';
 import { Screen } from './Screen';
 import { Text } from './Text';
 
@@ -21,8 +23,17 @@ export function LoadingScreen({
   message = 'Just a moment',
   withScreen = true,
 }: LoadingScreenProps) {
+  const { theme } = useTheme();
   const body = (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: theme.spacing.lg,
+      }}
+    >
+      <PauseMark size="md" />
       <Text variant="body" tone="muted" accessibilityLabel={message}>
         {message}
       </Text>

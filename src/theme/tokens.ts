@@ -72,9 +72,10 @@ export const typography = {
   title: 18,
   heading: 24,
   display: 32,
-  // font families (loaded in App.tsx) — light 300 / regular 400 weights
+  // font families (loaded in App.tsx) — light 300 / regular 400 / medium 500
   familyLight: 'Inter-Light',
   familyRegular: 'Inter-Regular',
+  familyMedium: 'Inter-Medium',
 } as const;
 
 /** Corner radii — soft, rounded, calm. */
