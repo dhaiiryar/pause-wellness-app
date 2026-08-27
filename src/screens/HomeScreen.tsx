@@ -4,8 +4,8 @@ import { Switch, View } from 'react-native';
 
 import {
   Button,
+  Card,
   LoadingScreen,
-  PauseMark,
   Screen,
   SettingsRow,
   Text,
@@ -18,8 +18,8 @@ import { RouteNames, type RootStackParamList } from '../navigation/routes';
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 
 /**
- * Home tab: pause mark, today's counts, thumb-zone actions for the two
- * rituals, then demoted pause switches. One-tap log glass stays here.
+ * Home tab: counts as facts, actions at the thumb, pause switches demoted.
+ * One-tap log glass stays here.
  */
 export function HomeScreen() {
   const { theme } = useTheme();
@@ -42,28 +42,11 @@ export function HomeScreen() {
       <View
         style={{
           flex: 1,
-          paddingTop: theme.spacing.lg,
+          paddingTop: theme.spacing.xl,
         }}
       >
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: -80,
-            left: -48,
-            right: -48,
-            height: 280,
-            borderRadius: 160,
-            backgroundColor: theme.colors.primary,
-            opacity: 0.14,
-          }}
-        />
-
-        <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
-          <PauseMark size="lg" />
-          <Text variant="heading" style={{ textAlign: 'center' }}>
-            look 20 ft away
-          </Text>
+        <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Text variant="display">Pause</Text>
           <Text variant="body" tone="muted" style={{ textAlign: 'center' }}>
             A calm moment, whenever you need one.
           </Text>
@@ -72,32 +55,32 @@ export function HomeScreen() {
         <View
           style={{
             flexDirection: 'row',
-            justifyContent: 'center',
-            gap: theme.spacing.xxxl,
-            marginTop: theme.spacing.xxl,
+            gap: theme.spacing.md,
+            marginTop: theme.spacing.xl,
           }}
         >
-          <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+          <Card style={{ flex: 1 }}>
+            <Text variant="caption" tone="muted">
+              Eye breaks
+            </Text>
             <Text
               variant="display"
               accessibilityLabel={`${eyeBreaks} eye breaks today`}
             >
               {eyeBreaks}
             </Text>
+          </Card>
+          <Card style={{ flex: 1 }}>
             <Text variant="caption" tone="muted">
-              breaks
+              Water
             </Text>
-          </View>
-          <View style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            <Text
-              accessibilityLabel={`${waterGlasses} of ${goal} glasses`}
-            >
+            <Text accessibilityLabel={`${waterGlasses} of ${goal} glasses`}>
               <Text variant="display">{waterGlasses}</Text>
+              <Text variant="title" tone="muted">
+                {` / ${goal}`}
+              </Text>
             </Text>
-            <Text variant="caption" tone="muted">
-              {`of ${goal} glasses`}
-            </Text>
-          </View>
+          </Card>
         </View>
 
         {hydrated && (
