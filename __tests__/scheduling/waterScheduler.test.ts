@@ -154,4 +154,29 @@ describe('rescheduleWaterReminders', () => {
     expect(notifications.scheduleNotificationAsync).toHaveBeenCalled();
     expect((await repo.getSettings()).waterPaused).toBe(false);
   });
+
+  it('floors today at quiet until and still schedules later fires', async () => {
+    const until = dt(2026, 6, 23, 9, 0);
+    const repo = new InMemoryRepository({
+      waterEnabled: true,
+      waterPaused: false,
+      waterQuietUntil: until.toISOString(),
+      waterGoalGlasses: 2,
+      activeHoursStart: '08:00',
+      activeHoursEnd: '10:00',
+      soundEnabled: true,
+    });
+    const notifications = makeNotifications();
+    const now = () => dt(2026, 6, 23, 8, 0);
+
+    await rescheduleWaterReminders({ repo, notifications, now });
+
+    const tracked = await repo.getScheduledIds('water');
+    const times = tracked.map((row) => new Date(row.triggerTime).getTime());
+    expect(times).not.toContain(dt(2026, 6, 23, 8, 0).getTime());
+    expect(times).not.toContain(dt(2026, 6, 23, 9, 0).getTime());
+    expect(times).toContain(dt(2026, 6, 24, 8, 0).getTime());
+    expect(times).toContain(dt(2026, 6, 24, 9, 0).getTime());
+    expect(notifications.cancelScheduledNotificationAsync).not.toHaveBeenCalled();
+  });
 });
